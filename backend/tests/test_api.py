@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,13 +27,14 @@ def create(client, scenario="critical"):
     return submit(client, {**REQUEST, "scenario": scenario})
 
 
-def decide(client, run_id, action="approve", headers=None):
+def decide(client, run_id, action="approve", headers=None, result_token=None):
     return client.post(
         f"/api/v1/analyses/{run_id}/decision",
         json={
             "action": action,
             "reason": "현장 검토 완료",
-            "result_token": client.get(f"/api/v1/analyses/{run_id}").json()["result_token"],
+            "result_token": result_token
+            or client.get(f"/api/v1/analyses/{run_id}").json()["result_token"],
         },
         headers=AUTH if headers is None else headers,
     )
@@ -115,10 +117,62 @@ def test_restart_preserves_interrupt_and_allows_approval(settings):
 
 def test_concurrent_approvals_are_serialized(client):
     run = create(client)
+    token = run["result_token"]
     with ThreadPoolExecutor(max_workers=2) as pool:
-        responses = list(pool.map(lambda _: decide(client, run["id"]), range(2)))
-    assert [r.status_code for r in responses] == [200, 200]
-    assert responses[-1].json()["notification"]["attempts"] == 1
+        responses = list(
+            pool.map(lambda _: decide(client, run["id"], result_token=token), range(2))
+        )
+    assert any(response.status_code == 200 for response in responses)
+    for response in responses:
+        # Slow CI may exceed the bounded lock wait. Reconcile with the same request.
+        if response.status_code == 503:
+            response = decide(client, run["id"], result_token=token)
+        assert response.status_code == 200, response.text
+        result = response.json()
+        assert result["status"] == "approved"
+        assert result["result_token"] == token
+        assert result["notification"]["id"] == run["id"]
+        assert result["notification"]["status"] == "mock_sent"
+        assert result["notification"]["attempts"] == 1
+    assert len(client.get(f"/api/v1/analyses/{run['id']}/audit").json()) == 1
+
+
+def test_busy_concurrent_approval_retry_preserves_one_decision(client, monkeypatch):
+    run = create(client)
+    token = run["result_token"]
+    entered, release = Event(), Event()
+    original = client.app.state.service.engine.decide
+
+    def hold_first_decision(*args, **kwargs):
+        entered.set()
+        assert release.wait(10), "Test did not release the approval"
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(client.app.state.service.engine, "decide", hold_first_decision)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first = pool.submit(decide, client, run["id"], result_token=token)
+        try:
+            assert entered.wait(5), "First approval did not start"
+            second = decide(client, run["id"], result_token=token)
+            assert second.status_code == 503
+            pending = client.get(f"/api/v1/analyses/{run['id']}").json()
+            assert pending["status"] == "decision_pending"
+            assert not pending["can_decide"]
+            assert pending["notification"] is None
+            assert client.get(f"/api/v1/analyses/{run['id']}/audit").json() == []
+        finally:
+            release.set()
+        completed = first.result(timeout=5)
+    assert completed.status_code == 200, completed.text
+    replay = decide(client, run["id"], result_token=token)
+    assert replay.status_code == 200, replay.text
+    assert replay.json()["status"] == "approved"
+    assert replay.json()["result_token"] == token
+    assert replay.json()["decision"] == completed.json()["decision"]
+    assert replay.json()["notification"]["id"] == completed.json()["notification"]["id"]
+    assert replay.json()["notification"]["status"] == "mock_sent"
+    assert replay.json()["notification"]["attempts"] == 1
+    assert len(client.get(f"/api/v1/analyses/{run['id']}/audit").json()) == 1
 
 
 def test_explicit_live_fallback_is_visible_but_cannot_be_approved(settings):
