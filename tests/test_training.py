@@ -66,3 +66,11 @@ def test_training_rejects_duplicate_timestamps(tmp_path):
     dataset(path, duplicate=True)
     with pytest.raises(ValueError, match="timestamp"):
         train(path, tmp_path / "model.json")
+
+
+def test_training_rejects_intervals_not_aligned_to_kst_hours(tmp_path):
+    path = tmp_path / "input.csv"
+    dataset(path)
+    path.write_text(path.read_text().replace("+09:00", "+05:30"))
+    with pytest.raises(ValueError, match="hour"):
+        train(path, tmp_path / "model.json")

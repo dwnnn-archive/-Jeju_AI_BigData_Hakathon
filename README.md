@@ -117,6 +117,8 @@ curl -X POST http://127.0.0.1:8000/api/v1/analyses/<analysis_id>/decision \
 
 시연 승인 결과는 `status=approved`, `notification.status=mock_sent`다. 실제 SMS 발송을 의미하지 않는다. 반려는 `action=reject`이며 승인/반려 결정은 이후 뒤집을 수 없다. 동일 내용의 승인 재요청은 기존 결과를 반환한다.
 
+결정은 그래프 재개 전에 `decision_intent`로 먼저 저장된다. 처리 중 장애가 나도 동일 담당자·action·reason으로 재시도해야 하며 다른 결정은 409로 거부한다. 조회 응답의 `decision_intent`에서 진행 중인 결정을 확인할 수 있다.
+
 ### API
 
 | Method | Path | 기능 |
@@ -151,5 +153,7 @@ ruff format --check .
 ```
 
 ML 학습/추론 검증을 포함하려면 `python -m pip install -e '.[dev,ml]'`로 설치한다. ML 확장이 없으면 관련 테스트만 skip한다. 실측 데이터 없이 수행한 합성 데이터 테스트는 학습/저장/로드 경로만 검증하며 모델의 현장 정확도를 입증하지 않는다.
+
+정확히 고정된 의존성으로 재현하려면 uv를 설치한 환경에서 `uv sync --frozen --extra dev --extra ml`를 사용한다. 커밋된 `uv.lock`을 사용하며 CI도 같은 명령을 실행한다.
 
 연동 스키마, 발전소 보정, XGBoost 학습 방법 및 남은 실데이터 과제는 [데이터 계약](docs/data-contracts.md), 내부 설계는 [설계 문서](docs/design.md)를 참고한다. 현재 기본 물리식/시연 모델, 추정 SOC, mock 알림으로 동작하며 운영 시스템 연결에는 데이터·모델 검증과 실제 공급자 구현이 필요하다.

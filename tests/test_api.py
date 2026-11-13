@@ -165,3 +165,14 @@ def test_invalid_and_unknown_requests_have_defined_errors(client):
     assert client.post("/api/v1/analyses", json={}).status_code == 422
     assert client.post("/api/v1/analyses", json={**REQUEST, "mode": "typo"}).status_code == 422
     assert client.get("/api/v1/analyses/not-found").status_code == 404
+
+
+def test_non_ascii_auth_headers_are_unauthorized_not_server_errors(settings):
+    settings.api_token = "reader-key"
+    with TestClient(create_app(settings), raise_server_exceptions=False) as client:
+        assert client.get("/api/v1/analyses", headers={b"X-API-Key": b"\xff"}).status_code == 401
+    settings.api_token = None
+    with TestClient(create_app(settings), raise_server_exceptions=False) as client:
+        run = create(client)
+        response = decide(client, run["id"], headers={b"X-Approver-Token": b"\xff"})
+        assert response.status_code == 401

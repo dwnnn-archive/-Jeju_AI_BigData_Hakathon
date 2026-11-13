@@ -20,14 +20,11 @@ def train(csv_path: Path, model_path: Path) -> dict:
     with csv_path.open(newline="", encoding="utf-8-sig") as handle:
         for row in csv.DictReader(handle):
             timestamp = datetime.fromisoformat(row["timestamp"])
-            if (
-                timestamp.tzinfo is None
-                or timestamp.minute
-                or timestamp.second
-                or timestamp.microsecond
-            ):
-                raise ValueError("timestamp must be timezone-aware and on the hour")
+            if timestamp.tzinfo is None:
+                raise ValueError("timestamp must be timezone-aware")
             timestamp = timestamp.astimezone(ZoneInfo("Asia/Seoul"))
+            if timestamp.minute or timestamp.second or timestamp.microsecond:
+                raise ValueError("timestamp must be on the KST hour")
             w = WeatherHour(
                 date=timestamp.date(),
                 hour=timestamp.hour,

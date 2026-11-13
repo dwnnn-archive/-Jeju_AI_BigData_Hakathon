@@ -84,6 +84,7 @@ class AnalysisService:
                 "trace": state.get("trace", []),
                 "evaluations": state.get("evaluations", []),
                 "notification": self.store.notification(run_id),
+                "decision_intent": self.store.decision_intent(run_id),
             }
         )
         return result
@@ -110,6 +111,9 @@ class AnalysisService:
                 audits = self.store.audit(run_id)
                 if audits and audits[0]["decision"] != value:
                     raise ConflictError("A different decision has already been recorded")
+                if run["decision_intent"] is not None and run["decision_intent"] != value:
+                    raise ConflictError("A different decision is already being processed")
+                self.store.reserve_decision(run_id, value)
                 self.graph.invoke(Command(resume=value), self.config(run_id))
             else:
                 raise ConflictError("Analysis is not awaiting approval")

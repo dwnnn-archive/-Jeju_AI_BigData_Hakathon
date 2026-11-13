@@ -10,7 +10,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install -e '.[dev,ml]'
-      - run: ruff check .
-      - run: ruff format --check .
-      - run: pytest -q
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen --extra dev --extra ml
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync pytest -q

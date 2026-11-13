@@ -20,6 +20,9 @@ class Store:
             CREATE TABLE IF NOT EXISTS audit (
                 analysis_id TEXT PRIMARY KEY, decision TEXT NOT NULL, created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS decision_intents (
+                analysis_id TEXT PRIMARY KEY, decision TEXT NOT NULL, created_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS outbox (
                 id TEXT PRIMARY KEY, analysis_id TEXT UNIQUE NOT NULL, payload TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
@@ -54,6 +57,8 @@ class Store:
     def record_decision(self, run_id, decision, state):
         # Atomic, replay-safe audit and outbox; graph checkpoint follows this commit.
         with self.conn:
+            if self.decision_intent(run_id) != decision:
+                raise ValueError("Decision does not match the reserved intent")
             existing = self.conn.execute(
                 "SELECT decision FROM audit WHERE analysis_id=?", (run_id,)
             ).fetchone()
@@ -77,6 +82,24 @@ class Store:
                     "(id,analysis_id,payload,created_at,updated_at) VALUES (?,?,?,?,?)",
                     (run_id, run_id, json.dumps(payload), now_iso(), now_iso()),
                 )
+
+    def decision_intent(self, run_id):
+        row = self.conn.execute(
+            "SELECT decision FROM decision_intents WHERE analysis_id=?", (run_id,)
+        ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def reserve_decision(self, run_id, decision):
+        # Commit before LangGraph can persist a resume value. Retries must agree
+        # even if the worker crashes before audit/outbox commit.
+        with self.conn:
+            existing = self.decision_intent(run_id)
+            if existing is not None and existing != decision:
+                raise ValueError("A different decision intent is already reserved")
+            self.conn.execute(
+                "INSERT OR IGNORE INTO decision_intents VALUES (?, ?, ?)",
+                (run_id, json.dumps(decision), now_iso()),
+            )
 
     def notification(self, run_id):
         row = self.conn.execute("SELECT * FROM outbox WHERE analysis_id=?", (run_id,)).fetchone()
