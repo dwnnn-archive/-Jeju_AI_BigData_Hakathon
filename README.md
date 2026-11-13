@@ -79,3 +79,77 @@ flowchart TD
 3. 교체 가능한 데이터 어댑터, 물리식 예측, XGBoost 학습/추론 경로를 구현한다.
 4. 재조회·승인 중단/재개·영속 저장·발송함을 LangGraph와 연결한다.
 5. FastAPI 엔드포인트와 인증, 테스트, 실행/연동 문서를 완성한다.
+
+## 실행
+
+Python 3.11 이상, 저장소 루트에서 실행한다. GPU와 외부 API 키 없이 시연할 수 있다.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+cp .env.example .env
+# .env의 APPROVER_TOKEN을 충분히 긴 임의 문자열로 설정한다.
+uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
+
+Windows에서는 가상환경 활성화 명령이 `.venv\Scripts\activate`이다. 승인 토큰을 설정하지 않아도 분석은 가능하지만 승인/반려/발송 API는 503을 반환한다. `.env`의 상대 경로는 실행 디렉터리 기준이다. 프로세스를 저장소 루트에서 실행한다.
+
+Swagger: `http://127.0.0.1:8000/docs`, OpenAPI: `/openapi.json`, 상태 확인: `/health`.
+외부 공개 전에는 `API_TOKEN`, 별도의 `APPROVER_TOKEN`, HTTPS 및 접근제어를 설정한다. SQLite 파일은 `runtime/`에 생성하며 백업 시 앱을 정지하거나 SQLite backup API를 사용한다. 이 버전은 DB 파일 잠금으로 작업을 직렬화하는 단일 호스트 개발용 백엔드다.
+
+### 분석 → 승인 예시
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/analyses \
+  -H 'Content-Type: application/json' \
+  -d '{"date":"2026-11-14","region":"jeju","mode":"demo","scenario":"critical"}'
+```
+
+응답의 `id`를 아래 `<analysis_id>`에 넣는다. `API_TOKEN`을 설정한 경우 모든 `/api/v1` 요청에 `X-API-Key` 헤더를 추가한다.
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/analyses/<analysis_id>/decision \
+  -H 'Content-Type: application/json' \
+  -H 'X-Approver-Token: <your-approver-token>' \
+  -d '{"action":"approve","reason":"담당자 검토 완료"}'
+```
+
+시연 승인 결과는 `status=approved`, `notification.status=mock_sent`다. 실제 SMS 발송을 의미하지 않는다. 반려는 `action=reject`이며 승인/반려 결정은 이후 뒤집을 수 없다. 동일 내용의 승인 재요청은 기존 결과를 반환한다.
+
+### API
+
+| Method | Path | 기능 |
+|---|---|---|
+| POST | `/api/v1/analyses` | 분석 실행, 위험일은 승인 노드에서 중단 |
+| GET | `/api/v1/analyses?limit=20` | 최근 분석 조회, 최대 100건 |
+| GET | `/api/v1/analyses/{id}` | 결과·출처·재조회 이력·초안·발송 상태 조회 |
+| POST | `/api/v1/analyses/{id}/decision` | 담당자 인증 후 승인/반려, 승인 시 발송 어댑터 실행 |
+| POST | `/api/v1/analyses/{id}/dispatch` | 승인된 미처리 발송함 처리, 중복 발송 없음 |
+| GET | `/api/v1/analyses/{id}/audit` | 승인자·사유·시간 조회 |
+| POST | `/api/v1/analyses/{id}/chat` | `{"message":"수소 생산량?"}` 등 저장된 결과 질의 |
+
+요청 지역: `jeju/hallim/jocheon/haengwon`. 날짜/지역은 구조화 필드로 지정하거나 `{"query":"내일 한림 위험 분석"}`처럼 입력한다. 파서는 오늘/내일/ISO 날짜와 제주 거점만 지원하며 범용 자연어 LLM이 아니다. 채팅을 통해 승인이나 발송을 수행할 수 없다.
+
+분석 응답의 `result.hourly`는 24시간 발전량/수요/잉여전력/위험등급이며, `allocation`은 피크 1시간 배분이다. `sources`는 공급자와 시연 여부, `evaluations`는 재조회 전후 수치, `trace`는 규칙 실행 순서다. 정상일에는 `allocation`, `draft`, `notification`이 null이다. 상태는 `running/completed/awaiting_approval/approved/rejected/failed`다.
+
+오류: 401 인증 실패, 404 분석 없음, 409 결정 충돌/승인 전 발송, 422 잘못된 입력, 503 분석 실패/승인 미설정/저장소 사용 중. 분석 실패 응답의 `analysis_id`로 실패 기록을 조회할 수 있다. 외부 API 키와 upstream 오류 본문은 응답에 노출하지 않는다.
+
+### 시연 및 검증
+
+| scenario | 기대 결과 |
+|---|---|
+| normal | 피크 100MWh, NORMAL, 승인 없이 종료 |
+| critical | 피크 230MWh, CRITICAL, 170MWh 배분, 390kg, 승인 대기 |
+| boundary | 195MWh → 1회 재조회 → 230MWh, CRITICAL |
+| boundary_stable | 195MWh 유지, 한도에서 종료, `boundary_unresolved=true` |
+
+```bash
+pytest -q
+ruff check .
+ruff format --check .
+```
+
+ML 학습/추론 검증을 포함하려면 `python -m pip install -e '.[dev,ml]'`로 설치한다. ML 확장이 없으면 관련 테스트만 skip한다. 실측 데이터 없이 수행한 합성 데이터 테스트는 학습/저장/로드 경로만 검증하며 모델의 현장 정확도를 입증하지 않는다.
+
+연동 스키마, 발전소 보정, XGBoost 학습 방법 및 남은 실데이터 과제는 [데이터 계약](docs/data-contracts.md), 내부 설계는 [설계 문서](docs/design.md)를 참고한다. 현재 기본 물리식/시연 모델, 추정 SOC, mock 알림으로 동작하며 운영 시스템 연결에는 데이터·모델 검증과 실제 공급자 구현이 필요하다.
