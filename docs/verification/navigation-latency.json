@@ -1,0 +1,8 @@
+{
+  "measurement": "local headless Chromium, DOM click to heading commit + next frame, loaded result",
+  "samples": 30,
+  "median_ms": 17.1,
+  "p95_ms": 41.7,
+  "max_ms": 54.7,
+  "physical_input_latency_included": false
+}

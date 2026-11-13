@@ -9,3 +9,8 @@ models/
 *.egg-info/
 .coverage
 .superpowers/
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.tsbuildinfo

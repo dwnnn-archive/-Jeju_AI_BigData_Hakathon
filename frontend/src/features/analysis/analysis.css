@@ -1,0 +1,238 @@
+.status-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-height: 66px;
+}
+
+.last-confirmed {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+}
+.last-confirmed strong {
+  font-weight: 500;
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.status-row .button {
+  font-size: 11px;
+  min-height: 34px;
+  padding: 5px 8px;
+}
+.result-context {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.result-context strong {
+  font-weight: 650;
+  color: var(--text);
+}
+.forecast-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 285px;
+  gap: 24px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 15px;
+  font-size: 11px;
+  color: var(--muted);
+  align-items: center;
+  margin-bottom: 14px;
+}
+.chart-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.chart-legend small {
+  margin-left: auto;
+  font-size: 12px;
+}
+.chart-legend i {
+  width: 15px;
+  height: 3px;
+  display: inline-block;
+}
+.legend-generation {
+  background: var(--primary);
+}
+.legend-demand {
+  border-bottom: 2px dashed #6c7f91;
+}
+.legend-surplus {
+  background: #f3dfb3 !important;
+  height: 8px !important;
+  border-radius: 2px;
+}
+.chart,
+.chart-loading {
+  height: 280px;
+  width: 100%;
+}
+.chart-loading {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.risk-strip {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  margin: 20px 3px 6px 44px;
+}
+.risk-cell {
+  height: 7px;
+  border-radius: 2px;
+  background: #dfebe9;
+}
+.risk-cell--caution {
+  background: #b27b20;
+}
+.risk-cell--critical {
+  background: var(--danger);
+}
+.risk-caption {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  margin-left: 44px;
+  font-size: 12px;
+  color: var(--muted);
+  gap: 10px;
+}
+.risk-caption > span:first-child,
+.risk-caption > span:last-child {
+  white-space: nowrap;
+}
+.risk-caption > span:nth-child(2) {
+  text-align: center;
+}
+.data-details {
+  margin-top: 20px;
+  border-top: 1px solid #e8edf1;
+  padding-top: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.data-details summary {
+  width: max-content;
+  max-width: 100%;
+  min-height: 24px;
+}
+.summary-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 28px;
+}
+.big-number {
+  font-size: 42px;
+  letter-spacing: -1.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  margin: 5px 0 10px;
+}
+.big-number span {
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 0;
+  font-weight: 450;
+  margin-left: 8px;
+}
+.risk-badge {
+  font-size: 11px;
+  font-weight: 650;
+  border-radius: 5px;
+  padding: 4px 9px;
+  background: #edf1f4;
+  color: var(--muted);
+}
+.risk-badge--critical {
+  background: #fbecef;
+  color: var(--danger);
+}
+.risk-badge--caution {
+  background: #fff4de;
+  color: var(--warning);
+}
+.risk-badge--normal {
+  background: #e9f5ef;
+  color: #237653;
+}
+.summary-list {
+  margin: 26px 0 18px;
+}
+.summary-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 0;
+  border-bottom: 1px solid #eef2f4;
+  font-size: 12px;
+}
+.summary-list dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+.summary-list dd {
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.summary-note {
+  display: flex;
+  gap: 8px;
+  background: #f5f8fa;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.summary-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.chart-panel > .empty-state {
+  min-height: 365px;
+}
+
+.sources {
+  margin: 0 0 24px;
+  padding: 5px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.sources summary {
+  min-height: 28px;
+  width: max-content;
+}
+.source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 12px 0;
+}
+.source-grid > div {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+}
+.source-grid span,
+.source-grid small {
+  display: block;
+  margin-top: 6px;
+}
+.source-grid strong {
+  color: var(--text);
+}
