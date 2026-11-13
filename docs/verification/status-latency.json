@@ -1,0 +1,8 @@
+{
+  "measurement": "local TestClient HTTP GET while worker holds execution lock",
+  "samples": 100,
+  "median_ms": 3.82,
+  "p95_ms": 9.85,
+  "max_ms": 17.5,
+  "network_included": false
+}

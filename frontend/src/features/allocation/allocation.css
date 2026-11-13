@@ -1,0 +1,78 @@
+.allocation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.resource {
+  border: 1px solid #e3eaef;
+  border-radius: 10px;
+  padding: 18px;
+  background: #fcfdfd;
+}
+.resource-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.resource-top small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.resource-icon {
+  display: flex;
+  color: var(--primary);
+}
+.resource h3 {
+  font-size: 13px;
+  margin-top: 18px;
+}
+.resource-value {
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.4;
+  margin: 7px 0 12px;
+}
+.resource-value span {
+  font-size: 11px;
+  font-weight: 450;
+  color: var(--muted);
+}
+meter {
+  width: 100%;
+  height: 7px;
+  display: block;
+  border: none;
+  background: #e6eded;
+  border-radius: 4px;
+}
+meter::-webkit-meter-bar {
+  background: #e6eded;
+  border: 0;
+  height: 7px;
+}
+meter::-webkit-meter-optimum-value {
+  background: var(--primary);
+}
+meter::-moz-meter-bar {
+  background: var(--primary);
+}
+.resource p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 9px;
+}
+.allocation-total {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin: 20px 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.allocation-total strong {
+  margin-left: 7px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}

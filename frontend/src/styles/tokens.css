@@ -1,0 +1,23 @@
+:root {
+  --background: #f3f6f8;
+  --surface: #fff;
+  --text: #20313f;
+  --muted: #586b78;
+  --primary: #067477;
+  --primary-soft: #eaf5f3;
+  --warning: #8f5b0d;
+  --danger: #b23846;
+  --border: #dde5eb;
+  --panel-radius: 12px;
+  --control-radius: 8px;
+  --page-space: 32px;
+  --gap: 24px;
+  --fast: 80ms;
+  --scroll-thumb: #a8b7c1;
+  --scroll-track: #edf1f4;
+  font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  color: var(--text);
+  background: var(--background);
+}

@@ -1,0 +1,98 @@
+import { z } from "zod";
+import {
+  runSchema,
+  summarySchema,
+  type AnalysisRequest,
+} from "../features/analysis/types";
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+  ) {
+    super(message);
+  }
+}
+const base = import.meta.env.VITE_API_BASE || "";
+export function createApi(key: string) {
+  async function request(
+    path: string,
+    init: RequestInit = {},
+    approver?: string,
+  ): Promise<unknown> {
+    let response: Response;
+    try {
+      response = await fetch(base + "/api/v1" + path, {
+        ...init,
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          "Content-Type": "application/json",
+          ...(key ? { "X-API-Key": key } : {}),
+          ...(approver ? { "X-Approver-Token": approver } : {}),
+          ...init.headers,
+        },
+      });
+    } catch {
+      throw new ApiError(
+        "서버 응답을 확인하지 못했습니다. 요청이 접수됐을 수 있으므로 같은 분석 ID로 확인하세요.",
+      );
+    }
+    if (!response.ok) {
+      const messages: Record<number, string> = {
+        401: "인증 정보를 확인하세요.",
+        404: "해당 분석의 접수를 확인하지 못했습니다.",
+        409: "현재 결과 또는 결정 조건이 변경되었습니다. 상태를 다시 확인하세요.",
+        422: "요청 형식이 올바르지 않습니다.",
+        503: "서버가 현재 요청을 처리할 수 없습니다.",
+      };
+      throw new ApiError(
+        messages[response.status] || "서버 처리 결과를 확인하지 못했습니다.",
+        response.status,
+      );
+    }
+    try {
+      return await response.json();
+    } catch {
+      throw new ApiError("서버 응답 형식을 확인할 수 없습니다.");
+    }
+  }
+  function parseRun(data: unknown) {
+    const parsed = runSchema.safeParse(data);
+    if (!parsed.success)
+      throw new ApiError("서버 상태의 필수 정보를 검증하지 못했습니다.");
+    return parsed.data;
+  }
+  return {
+    get: async (id: string) =>
+      parseRun(await request("/analyses/" + encodeURIComponent(id))),
+    submit: async (id: string, body: AnalysisRequest) =>
+      parseRun(
+        await request("/analyses", {
+          method: "POST",
+          headers: { "Idempotency-Key": id },
+          body: JSON.stringify(body),
+        }),
+      ),
+    list: async () =>
+      z.array(summarySchema).parse(await request("/analyses?limit=30")),
+    decide: async (
+      id: string,
+      action: "approve" | "reject",
+      reason: string,
+      token: string,
+      approver: string,
+    ) =>
+      parseRun(
+        await request(
+          "/analyses/" + id + "/decision",
+          {
+            method: "POST",
+            body: JSON.stringify({ action, reason, result_token: token }),
+          },
+          approver,
+        ),
+      ),
+  };
+}
+export type Api = ReturnType<typeof createApi>;
