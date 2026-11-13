@@ -1,0 +1,7 @@
+{
+  "normal": {"peak_surplus_mwh": [100]},
+  "critical": {"peak_surplus_mwh": [230]},
+  "boundary": {"peak_surplus_mwh": [195, 230]},
+  "boundary_stable": {"peak_surplus_mwh": [195, 195, 195, 195]}
+}
+

@@ -1,0 +1,65 @@
+from datetime import date as Date
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+NonNegative = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+Region = Literal["jeju", "hallim", "jocheon", "haengwon"]
+
+
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class AnalysisRequest(StrictModel):
+    date: Date | None = None
+    region: Region | None = None
+    query: str | None = Field(default=None, max_length=1000)
+    mode: Literal["demo", "live"] = "demo"
+    scenario: Literal["normal", "critical", "boundary", "boundary_stable"] = "critical"
+
+
+class EnergyHour(StrictModel):
+    date: Date
+    hour: int = Field(ge=0, le=23)
+    mwh: NonNegative
+
+
+class WeatherHour(StrictModel):
+    date: Date
+    hour: int = Field(ge=0, le=23)
+    wind_ms: float = Field(ge=0, le=100)
+    temperature_c: float = Field(ge=-70, le=70)
+    sky: int = Field(ge=1, le=4)
+    irradiance_wm2: float = Field(ge=0, le=1500)
+
+
+class Capacities(StrictModel):
+    bess: NonNegative = 70
+    vpp: NonNegative = 30
+    p2x: NonNegative = 30
+    ev: NonNegative = 40
+
+
+class Plant(StrictModel):
+    id: str = Field(min_length=1)
+    kind: Literal["wind", "solar"]
+    capacity_mw: NonNegative
+    source: str = Field(min_length=1)
+
+
+class Decision(StrictModel):
+    action: Literal["approve", "reject"]
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class ChatRequest(StrictModel):
+    message: str = Field(min_length=1, max_length=1000)
+
+
+def validate_day(rows, target: Date):
+    if len(rows) != 24 or {r.hour for r in rows} != set(range(24)):
+        raise ValueError("Exactly 24 unique hours (0..23) are required")
+    if any(r.date != target for r in rows):
+        raise ValueError("All rows must match the requested KST date")
+    return sorted(rows, key=lambda r: r.hour)

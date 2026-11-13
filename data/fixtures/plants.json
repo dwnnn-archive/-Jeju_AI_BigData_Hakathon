@@ -1,0 +1,5 @@
+[
+  {"id":"demo-wind-total","kind":"wind","capacity_mw":900,"source":"demo"},
+  {"id":"demo-solar-total","kind":"solar","capacity_mw":600,"source":"demo"}
+]
+
