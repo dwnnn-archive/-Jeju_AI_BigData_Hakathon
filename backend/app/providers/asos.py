@@ -27,6 +27,8 @@ class AsosHour:
     wind_ms: float | None
     temperature_c: float | None
     irradiance_wm2: float | None
+    # 전운량(10분위, 0~10). 예보의 하늘상태(SKY)와 같은 입력으로 맞추기 위해 수집한다.
+    cloud_tenths: float | None = None
 
 
 def _result_ok(header: dict) -> bool:
@@ -55,6 +57,11 @@ def _irradiance(item: dict) -> float | None:
     if raw in (None, ""):
         return None
     return float(raw) * MJ_PER_M2_TO_AVG_WM2
+
+
+def _plain(item: dict, field: str) -> float | None:
+    raw = item.get(field)
+    return None if raw in (None, "") else float(raw)
 
 
 class AsosProvider:
@@ -90,6 +97,7 @@ class AsosProvider:
                     _value(item, "ws"),
                     _value(item, "ta"),
                     _irradiance(item),
+                    _plain(item, "dc10Tca"),
                 )
             )
         return sorted(rows, key=lambda r: r.timestamp)

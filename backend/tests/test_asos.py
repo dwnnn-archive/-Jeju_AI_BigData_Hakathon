@@ -18,6 +18,7 @@ def _item(hour, **over):
         "ws": "7.2",
         "wsQcflg": "",
         "icsr": "1.8",
+        "dc10Tca": "7",
     }
     base.update(over)
     return base
@@ -54,6 +55,7 @@ def test_parses_units_and_request_shape():
     assert rows[0].timestamp == START and rows[0].wind_ms == 7.2
     # 1.8 MJ/m2 per hour → 500 W/m2 average.
     assert rows[0].irradiance_wm2 == pytest.approx(500)
+    assert rows[0].cloud_tenths == 7
     q = seen[0]
     assert (q["dataCd"], q["dateCd"], q["stnIds"]) == ("ASOS", "HR", "185")
     assert (q["startDt"], q["startHh"], q["endDt"], q["endHh"]) == (

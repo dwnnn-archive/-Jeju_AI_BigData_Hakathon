@@ -5,7 +5,8 @@
 
 - 지점: 제주(184) 고산(185) 성산(188) 서귀포(189), 월 단위로 호출한다.
 - 월별 파일이 이미 있으면 건너뛰므로 중단 후 같은 명령으로 이어받을 수 있다.
-- 병합 결과: <출력폴더>/asos_<지점>.csv (timestamp, wind_ms, temperature_c, irradiance_wm2).
+- 병합 결과: <출력폴더>/asos_<지점>.csv
+  (timestamp, wind_ms, temperature_c, irradiance_wm2, cloud_tenths).
   값이 없거나 품질플래그가 정상이 아닌 칸은 빈 칸이다. 일사량은 낮에만 값이 있다.
 - 출력 폴더는 Git에 올리지 않는다(runtime/ 은 .gitignore 대상).
 """
@@ -22,7 +23,7 @@ import httpx
 from app.core.config import Settings
 from app.providers.asos import JEJU_STATIONS, KST, AsosHour, AsosProvider
 
-FIELDS = ["timestamp", "wind_ms", "temperature_c", "irradiance_wm2"]
+FIELDS = ["timestamp", "wind_ms", "temperature_c", "irradiance_wm2", "cloud_tenths"]
 
 
 def months(start: str, end: str):
@@ -50,6 +51,7 @@ def write_rows(path: Path, rows: list[AsosHour]) -> None:
                     _cell(r.wind_ms),
                     _cell(r.temperature_c),
                     _cell(r.irradiance_wm2),
+                    _cell(r.cloud_tenths),
                 ]
             )
     tmp.replace(path)  # 쓰기 도중 중단돼도 불완전한 월 파일이 남지 않는다

@@ -14,14 +14,14 @@ def test_months_crosses_year_boundary_and_is_inclusive():
 def test_write_rows_blank_for_missing_and_leaves_no_temp_file(tmp_path):
     path = tmp_path / "monthly" / "185_2024-05.csv"
     rows = [
-        AsosHour(datetime(2024, 5, 1, 0, tzinfo=KST), 185, 6.1, 13.3, None),
-        AsosHour(datetime(2024, 5, 1, 12, tzinfo=KST), 185, None, 18.0, 500.0),
+        AsosHour(datetime(2024, 5, 1, 0, tzinfo=KST), 185, 6.1, 13.3, None, 4.0),
+        AsosHour(datetime(2024, 5, 1, 12, tzinfo=KST), 185, None, 18.0, 500.0, None),
     ]
     write_rows(path, rows)
     got = list(csv.reader(path.open(encoding="utf-8")))
     assert got[0] == FIELDS
-    assert got[1] == ["2024-05-01T00:00:00+09:00", "6.1", "13.3", ""]
-    assert got[2] == ["2024-05-01T12:00:00+09:00", "", "18.0", "500.0"]
+    assert got[1] == ["2024-05-01T00:00:00+09:00", "6.1", "13.3", "", "4.0"]
+    assert got[2] == ["2024-05-01T12:00:00+09:00", "", "18.0", "500.0", ""]
     assert [p.name for p in path.parent.iterdir()] == ["185_2024-05.csv"]
 
 

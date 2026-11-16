@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     plants_path: Path = ROOT / "data/fixtures/plants.json"
     corrections_path: Path = ROOT / "data/corrections/plants.json"
     model_path: Path | None = None
+    # 제주 전체 단위 모델 폴더(wind.json, solar.json, meta.json). 설정하면 live 발전량 예측에 쓴다.
+    jeju_model_dir: Path | None = None
     notification_mode: Literal["mock", "webhook"] = "mock"
     notification_url: str | None = None
     notification_token: SecretStr | None = None
