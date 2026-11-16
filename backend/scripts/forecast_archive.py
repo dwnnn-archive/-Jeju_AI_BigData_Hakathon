@@ -22,21 +22,26 @@ import argparse
 import csv
 import json
 import sys
+import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import httpx
 
 from app.core.config import Settings
 from app.providers.asos import JEJU_STATIONS, KST
-from app.providers.kma import KmaProvider
-from app.providers.kma_nowcast import KmaNowcastProvider
+from app.providers.kma import KmaProvider, issue_time
+from app.providers.kma_nowcast import KmaNowcastProvider, forecast_base
 from app.repositories.forecasts import ForecastArchive
 from app.tools.demand_model import JEJU_CITY_GRID
 from app.tools.jeju_model import GOSAN_GRID, sky_from_cloud_tenths
 from scripts.build_training_csv import read_asos
 
+SHORT_BASE_HOURS = (2, 5, 8, 11, 14, 17, 20, 23)
+# 기상청이 단기예보·초단기예보를 다시 주는 기간(약 72시간)보다 조금 짧게 잡는다.
+# 초단기실황은 최근 1일만 주므로 따라잡지 않고 최신 한 건만 받는다.
+CATCH_UP_HOURS = 70
 GRIDS = {"gosan": GOSAN_GRID, "jeju_city": JEJU_CITY_GRID}
 GRID_STATION = {GOSAN_GRID: "gosan", JEJU_CITY_GRID: "jeju"}
 OBSERVED = {"WSD": "wind_ms", "TMP": "temperature_c", "T1H": "temperature_c", "SKY": "sky"}
@@ -63,13 +68,40 @@ def archive_path(settings: Settings) -> Path:
     return settings.forecast_archive_path or settings.database_path.parent / "forecasts.sqlite"
 
 
+def candidate_bases(
+    source: str, now: datetime, hours: int = CATCH_UP_HOURS
+) -> list[tuple[str, str]]:
+    """최근 hours 시간 안에 발표됐고 제공 지연(단기 10분, 초단기 45분)이 지난 발표 기준 시각."""
+    now = now.astimezone(KST)
+    latest = issue_time(now) if source == "short" else forecast_base(now)
+    found = {latest}
+    day = (now - timedelta(hours=hours)).date()
+    while day <= now.date():
+        if source == "short":
+            slots = [(h, 0, 10) for h in SHORT_BASE_HOURS]
+        else:  # 초단기예보: 매시 30분 생성, 45분 뒤부터 제공
+            slots = [(h, 30, 15) for h in range(24)]
+        for hour, minute, delay in slots:
+            base = datetime(day.year, day.month, day.day, hour, minute, tzinfo=KST)
+            if now - timedelta(hours=hours) <= base and base + timedelta(minutes=delay) <= now:
+                found.add((base.strftime("%Y%m%d"), base.strftime("%H%M")))
+        day += timedelta(days=1)
+    return sorted(found)
+
+
 def collect(
     settings: Settings,
     archive: ForecastArchive,
     now: datetime,
     client: httpx.Client | None = None,
+    catch_up_hours: int = CATCH_UP_HOURS,
+    retry_delay: float = 2.0,
 ) -> dict:
-    """두 격자의 단기예보·초단기예보·초단기실황을 받아 저장한다. 실패는 모아서 돌려준다."""
+    """두 격자의 단기예보·초단기예보·초단기실황을 받아 저장한다. 실패는 모아서 돌려준다.
+
+    PC가 꺼져 있어 놓친 발표는 최근 catch_up_hours 시간 안에서 다시 받아 채운다(이미 저장한 발표는
+    호출하지 않는다). 초단기실황은 기상청이 최근 1일만 줘서 최신 한 건만 받는다.
+    """
     key = settings.kma_api_key
     if not key or not key.get_secret_value():
         raise ValueError("kma_key_missing")
@@ -82,16 +114,30 @@ def collect(
     errors: list[str] = []
     try:
         for name, (nx, ny) in GRIDS.items():
-            for label, call in (
-                ("short", lambda nx=nx, ny=ny: short.issue(nx, ny, now=now)),
-                ("ultra_fcst", lambda nx=nx, ny=ny: ultra.raw_forecast(nx, ny, now)),
-                ("ultra_ncst", lambda nx=nx, ny=ny: ultra.raw_observation(nx, ny, now)),
+            calls = []
+            for source, fetch in (
+                ("short", lambda b, nx=nx, ny=ny: short.issue(nx, ny, base=b)),
+                ("ultra_fcst", lambda b, nx=nx, ny=ny: ultra.raw_forecast(nx, ny, now, base=b)),
             ):
-                try:
-                    call()
-                except Exception as exc:  # noqa: BLE001 - 한 건이 실패해도 나머지는 계속 받는다
-                    # 예외 메시지에 키가 담긴 URL이 있을 수 있어 종류만 남긴다.
-                    errors.append(f"{name}/{label}: {type(exc).__name__}")
+                have = archive.issue_keys(source)
+                for base in candidate_bases(source, now, catch_up_hours):
+                    if (nx, ny, *base) not in have:
+                        calls.append((f"{source}@{base[0]}{base[1]}", lambda f=fetch, b=base: f(b)))
+            calls.append(("ultra_ncst", lambda nx=nx, ny=ny: ultra.raw_observation(nx, ny, now)))
+            for label, call in calls:
+                for attempt in (1, 2):
+                    try:
+                        call()
+                        break
+                    except httpx.HTTPError as exc:
+                        if attempt == 1:  # 일시적 지연·오류는 한 번 더 시도한다
+                            time.sleep(retry_delay)
+                            continue
+                        errors.append(f"{name}/{label}: {type(exc).__name__}")
+                    except Exception as exc:  # noqa: BLE001 - 한 건이 실패해도 나머지는 계속 받는다
+                        # 예외 메시지에 키가 담긴 URL이 있을 수 있어 종류만 남긴다.
+                        errors.append(f"{name}/{label}: {type(exc).__name__}")
+                        break
     finally:
         if own_client:
             client.close()

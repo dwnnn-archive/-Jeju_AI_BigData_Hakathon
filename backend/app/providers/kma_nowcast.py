@@ -78,9 +78,11 @@ class KmaNowcastProvider:
         """초단기실황 원본 항목 전체(저장용)."""
         return self._items(NCST_OPERATION, nx, ny, observation_base(now))
 
-    def raw_forecast(self, nx: int, ny: int, now: datetime) -> list[dict]:
-        """초단기예보 원본 항목 전체(저장용)."""
-        return self._items(FCST_OPERATION, nx, ny, forecast_base(now))
+    def raw_forecast(
+        self, nx: int, ny: int, now: datetime, base: tuple[str, str] | None = None
+    ) -> list[dict]:
+        """초단기예보 원본 항목 전체(저장용). base 가 없으면 지금 기준 최신 발표분."""
+        return self._items(FCST_OPERATION, nx, ny, base or forecast_base(now))
 
     def observation(self, nx: int, ny: int, now: datetime) -> HourObs:
         """가장 최근 정시의 풍속·기온 실황."""

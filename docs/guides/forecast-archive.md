@@ -33,7 +33,20 @@ python -m scripts.forecast_archive export runtime/asos runtime/forecast_dataset.
 python -m scripts.forecast_archive report runtime/asos              # 예보가 실제로 얼마나 틀렸는지
 ```
 
-**스케줄 권장**: 단기예보는 02/05/08/11/14/17/20/23시에 발표되고 10분 뒤부터 받을 수 있다. `collect`를 **3시간마다(발표 10분 뒤)** 돌리면 단기예보 전 발표분과 초단기예보를 충분히 쌓는다. 초단기예보·실황을 매시 받으려면 매시 45분 이후에 돌린다. 호출 주기는 팀이 정한다(스케줄러 결정은 [intraday-check.md](intraday-check.md)).
+### Windows 작업 스케줄러로 자동 수집
+
+```powershell
+powershell -ExecutionPolicy Bypass -File backend\scripts\register_collect_task.ps1          # 등록(다시 실행하면 덮어쓴다)
+powershell -ExecutionPolicy Bypass -File backend\scripts\register_collect_task.ps1 -Remove  # 해제
+Start-ScheduledTask -TaskName JejuForecastArchive-Collect                                   # 지금 한 번 실행
+```
+
+- 작업 이름 `JejuForecastArchive-Collect`. 매일 02:15부터 **3시간마다**(02:15, 05:15, …, 23:15 = 단기예보 발표 15분 뒤) `scripts\collect_forecasts.cmd`를 실행한다. 로그는 `backend\runtime\collect.log`.
+- 로그인한 사용자 권한으로만 돈다(비밀번호를 저장하지 않는다). **PC가 켜져 있고 로그인돼 있어야 한다.** 배터리여도 실행하고, 이전 실행이 끝나지 않았으면 겹쳐 돌지 않으며, 20분을 넘기면 중단한다.
+- **놓친 발표 따라잡기**: PC가 꺼져 있었으면 다음 실행에서 최근 약 70시간 안의 발표 중 저장 안 된 것만 다시 받는다(기상청은 단기·초단기예보를 약 72시간만 다시 준다). 실패한 건은 한 번 재시도하고, 그래도 실패하면 다음 실행에서 다시 채운다. 이미 저장한 발표는 호출하지 않는다.
+- **초단기실황은 따라잡을 수 없다.** 기상청이 최근 1일만 주고, 실행 때마다 최신 한 건만 받는다. 3시간 간격이라 실황은 3시간에 한 건씩만 쌓인다(실측 비교는 ASOS로 한다).
+- 72시간 넘게 PC가 꺼져 있으면 그 사이 발표는 복구할 수 없다.
+- 서버 PC가 아닌 개발 PC에 걸어 둔 것이다. 장기 운영은 항상 켜진 서버로 옮기는 것이 안전하다.
 
 ## ML 개선에 쓰는 방법
 

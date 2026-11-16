@@ -142,6 +142,17 @@ class ForecastArchive:
 
     # ---- 읽기 (내보내기·평가용) ----
 
+    def issue_keys(self, source: str) -> set[tuple[int, int, str, str]]:
+        """이미 저장한 발표의 (nx, ny, 발표 일자, 발표 시각) 집합."""
+        with self._connect() as conn:
+            return {
+                (r["nx"], r["ny"], r["base_date"], r["base_time"])
+                for r in conn.execute(
+                    "SELECT nx,ny,base_date,base_time FROM forecast_issues WHERE source=?",
+                    (source,),
+                )
+            }
+
     def issues(self, source: str | None = None) -> list[dict]:
         query, args = "SELECT * FROM forecast_issues", ()
         if source:

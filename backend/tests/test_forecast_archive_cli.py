@@ -7,7 +7,12 @@ import pytest
 
 from app.core.config import Settings
 from app.repositories.forecasts import ForecastArchive
-from scripts.forecast_archive import collect, export_dataset, summarize_errors
+from scripts.forecast_archive import (
+    candidate_bases,
+    collect,
+    export_dataset,
+    summarize_errors,
+)
 
 KST = ZoneInfo("Asia/Seoul")
 NOW = datetime(2026, 11, 16, 21, 41, tzinfo=KST)
@@ -41,12 +46,12 @@ def _items(op):
     ]
 
 
-def _client(fail=None, seen=None):
+def _client(fail=None, seen=None, fail_base=None):
     def handler(req):
         op = req.url.path.rsplit("/", 1)[-1]
         if seen is not None:
             seen.append((op, req.url.params["nx"]))
-        if op == fail:
+        if op == fail or (fail_base and req.url.params["base_time"] == fail_base):
             return httpx.Response(500, text="boom")
         items = _items(op)
         return httpx.Response(
@@ -65,22 +70,31 @@ def _client(fail=None, seen=None):
 def test_collect_stores_three_sources_for_both_grids_and_is_idempotent(tmp_path):
     archive = ForecastArchive(tmp_path / "f.sqlite")
     seen = []
-    result = collect(_settings(), archive, NOW, client=_client(seen=seen))
+    result = collect(
+        _settings(), archive, NOW, client=_client(seen=seen), catch_up_hours=0, retry_delay=0
+    )
     assert result == {"new_issues": 6, "errors": []}  # 격자 2개 x (단기, 초단기예보, 초단기실황)
     assert {nx for _, nx in seen} == {"46", "53"}
     sources = {(i["source"], i["nx"]) for i in archive.issues()}
     assert sources == {(s, nx) for s in ("short", "ultra_fcst", "ultra_ncst") for nx in (46, 53)}
-    again = collect(_settings(), archive, NOW, client=_client())
+    again = collect(_settings(), archive, NOW, client=_client(), catch_up_hours=0, retry_delay=0)
     assert again == {"new_issues": 0, "errors": []}  # 스케줄러가 겹쳐 돌아도 중복 저장 없음
 
 
 def test_collect_keeps_going_when_one_call_fails_and_never_leaks_the_url(tmp_path):
     archive = ForecastArchive(tmp_path / "f.sqlite")
-    result = collect(_settings(), archive, NOW, client=_client(fail="getUltraSrtFcst"))
+    result = collect(
+        _settings(),
+        archive,
+        NOW,
+        client=_client(fail="getUltraSrtFcst"),
+        catch_up_hours=0,
+        retry_delay=0,
+    )
     assert result["new_issues"] == 4
     assert result["errors"] == [
-        "gosan/ultra_fcst: HTTPStatusError",
-        "jeju_city/ultra_fcst: HTTPStatusError",
+        "gosan/ultra_fcst@202611162030: HTTPStatusError",
+        "jeju_city/ultra_fcst@202611162030: HTTPStatusError",
     ]
     assert "example.test" not in str(result)
 
@@ -141,3 +155,82 @@ def test_error_summary_reports_bias_mae_and_sky_accuracy_by_lead(tmp_path):
     assert tmp["bias"] == pytest.approx(-1.0)  # 예보 10, 실측 11
     assert summary[("SKY", "0-2h")]["accuracy"] == 0.0  # 예보 1, 실측 3
     assert ("PCP", "0-2h") not in summary  # 비교 대상이 아닌 항목은 제외
+
+
+def test_candidate_bases_cover_only_published_issues_inside_the_window():
+    short = candidate_bases("short", NOW, hours=12)
+    assert short == [("20261116", h) for h in ("1100", "1400", "1700", "2000")]
+    ultra = candidate_bases("ultra_fcst", NOW, hours=12)
+    assert ultra[0] == ("20261116", "1030") and ultra[-1] == ("20261116", "2030")
+    assert len(ultra) == 11 and ("20261116", "2130") not in ultra  # 21:30 발표는 21:45부터 제공
+    # 따라잡기 0시간이면 최신 발표 한 건만 남는다
+    assert candidate_bases("short", NOW, hours=0) == [("20261116", "2000")]
+    # 자정을 넘기면 전날 발표를 거쳐 간다
+    after_midnight = datetime(2026, 11, 17, 0, 41, tzinfo=KST)
+    assert candidate_bases("short", after_midnight, hours=3)[-1] == ("20261116", "2300")
+
+
+def test_catch_up_fills_missed_issues_after_the_pc_was_off_and_does_not_refetch(tmp_path):
+    archive = ForecastArchive(tmp_path / "f.sqlite")
+    seen = []
+    first = collect(
+        _settings(), archive, NOW, client=_client(seen=seen), catch_up_hours=12, retry_delay=0
+    )
+    # 격자 2개 x (단기 4 + 초단기예보 11 + 초단기실황 1)
+    assert first == {"new_issues": 32, "errors": []}
+    assert len(seen) == 32
+    # 같은 시각에 다시 돌려도 새로 쌓이는 것이 없고, 이미 저장한 발표는 부르지 않는다.
+    # 초단기실황만 최신 한 건을 격자마다 다시 받는다(같은 발표라 저장되지 않는다).
+    again_seen = []
+    again = collect(
+        _settings(), archive, NOW, client=_client(seen=again_seen), catch_up_hours=12, retry_delay=0
+    )
+    assert again == {"new_issues": 0, "errors": []}
+    assert [op for op, _ in again_seen] == ["getUltraSrtNcst", "getUltraSrtNcst"]
+    later = datetime(2026, 11, 17, 0, 41, tzinfo=KST)  # 3시간 뒤 실행: 새로 나온 발표만 받는다
+    result = collect(
+        _settings(), archive, later, client=_client(), catch_up_hours=12, retry_delay=0
+    )
+    assert result == {"new_issues": 10, "errors": []}  # 격자당 단기 1 + 초단기예보 3 + 실황 1
+
+
+def test_a_failed_issue_is_retried_on_the_next_run(tmp_path):
+    archive = ForecastArchive(tmp_path / "f.sqlite")
+    failed = collect(
+        _settings(), archive, NOW, client=_client(fail_base="1700"), catch_up_hours=6, retry_delay=0
+    )
+    assert failed["errors"] == [
+        "gosan/short@202611161700: HTTPStatusError",
+        "jeju_city/short@202611161700: HTTPStatusError",
+    ]
+    stored = {(i["source"], i["base_time"]) for i in archive.issues()}
+    assert ("short", "1700") not in stored and ("short", "2000") in stored
+    retry = collect(_settings(), archive, NOW, client=_client(), catch_up_hours=6, retry_delay=0)
+    assert retry == {"new_issues": 2, "errors": []}  # 빠졌던 17시 발표만 격자마다 채운다
+
+
+def test_a_transient_failure_is_retried_once_inside_the_same_run(tmp_path):
+    archive = ForecastArchive(tmp_path / "f.sqlite")
+    calls = {"n": 0}
+
+    def handler(req):
+        op = req.url.path.rsplit("/", 1)[-1]
+        if op == "getVilageFcst" and req.url.params["nx"] == "46":
+            calls["n"] += 1
+            if calls["n"] == 1:  # 첫 시도만 시간 초과
+                raise httpx.ReadTimeout("slow", request=req)
+        items = _items(op)
+        return httpx.Response(
+            200,
+            json={
+                "response": {
+                    "header": {"resultCode": "00"},
+                    "body": {"items": {"item": items}, "totalCount": len(items)},
+                }
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    result = collect(_settings(), archive, NOW, client=client, catch_up_hours=0, retry_delay=0)
+    assert result == {"new_issues": 6, "errors": []}  # 재시도로 모두 저장
+    assert calls["n"] == 2
