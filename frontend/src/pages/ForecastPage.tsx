@@ -55,7 +55,7 @@ export function ForecastPage({ run }: { run: AnalysisRun | null }) {
             </div>
             <ArrowUpRight size={20} />
           </div>
-          <p className="summary-label">피크 잉여전력</p>
+          <p className="summary-label">피크 잉여전력 (수요의 40% 초과분)</p>
           <div className="big-number">
             {result ? result.peak_surplus_mwh.toFixed(1) : "—"}
             <span>MWh</span>
@@ -70,6 +70,14 @@ export function ForecastPage({ run }: { run: AnalysisRun | null }) {
               : "분석 결과 없음"}
           </span>
           <dl className="summary-list">
+            <div>
+              <dt>발전량/수요 최대 비율</dt>
+              <dd>
+                {result
+                  ? `${(result.peak_ratio * 100).toFixed(0)}% (경계 ${(result.thresholds.warning_ratio * 100).toFixed(0)}% · 위험 ${(result.thresholds.critical_ratio * 100).toFixed(0)}%)`
+                  : "—"}
+              </dd>
+            </div>
             <div>
               <dt>
                 <Clock3 size={15} />

@@ -71,7 +71,7 @@ node scripts/measure-navigation.mjs
 - [데스크톱 결과 화면](screenshots/desktop-result.png)
 - [모바일 결과 화면](screenshots/mobile-result.png)
 
-두 화면 모두 시연 데이터이다. 기본 230 MWh 등의 값은 모델이 실제로 다음날을 예측해 얻은 결과가 아니다.
+두 화면 모두 시연 데이터이다. 기본 230 MWh 등의 값은 모델이 실제로 다음날을 예측해 얻은 결과가 아니다(시연 수치는 수요 700 MWh 기준 비율 규칙으로 다시 만들었다).
 
 ## 남은 범위
 

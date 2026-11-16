@@ -64,12 +64,19 @@ export const runSchema = z
         risk,
         peak_hour: z.number().int().min(0).max(23),
         peak_surplus_mwh: energy,
+        peak_ratio: energy,
+        thresholds: z.object({
+          warning_ratio: energy,
+          critical_ratio: energy,
+          surplus_basis: z.string(),
+        }),
         hourly: z
           .array(
             z.object({
               hour: z.number().int().min(0).max(23),
               generation_mwh: energy,
               demand_mwh: energy,
+              ratio: energy,
               surplus_mwh: energy,
               risk,
             }),

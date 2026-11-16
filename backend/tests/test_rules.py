@@ -3,7 +3,15 @@ from datetime import date
 import pytest
 from pydantic import ValidationError
 
-from app.domain.rules import allocate, evaluate
+from app.domain.rules import (
+    BOUNDARY_RATIO,
+    CRITICAL_RATIO,
+    WARNING_RATIO,
+    allocate,
+    evaluate,
+    is_boundary,
+    risk_level,
+)
 from app.domain.schemas import AnalysisRequest, EnergyHour, validate_day
 
 DAY = date(2026, 11, 14)
@@ -14,21 +22,53 @@ def series(value):
 
 
 @pytest.mark.parametrize(
-    "surplus,risk",
+    "generation,risk",
     [
         (0, "NORMAL"),
-        (149.9, "NORMAL"),
-        (150, "CAUTION"),
-        (199.9, "CAUTION"),
-        (200, "CRITICAL"),
-        (230, "CRITICAL"),
+        (39.9, "NORMAL"),  # 비율 0.399
+        (40, "CAUTION"),  # 비율 0.40 (경계선)
+        (44.9, "CAUTION"),
+        (45, "CRITICAL"),  # 비율 0.45
+        (73, "CRITICAL"),
     ],
 )
-def test_risk_boundaries(surplus, risk):
-    result = evaluate(series(surplus + 100), list(reversed(series(100))), DAY)
+def test_risk_thresholds_use_generation_to_demand_ratio(generation, risk):
+    result = evaluate(series(generation), series(100), DAY)
     assert result["risk"] == risk
-    assert result["peak_surplus_mwh"] == pytest.approx(surplus)
+    assert result["peak_ratio"] == pytest.approx(generation / 100)
+    # 잉여(흡수 대상)는 수요의 40% 경계선을 넘는 발전량이다.
+    assert result["peak_surplus_mwh"] == pytest.approx(max(0.0, generation - 40))
     assert len(result["hourly"]) == 24
+    assert result["thresholds"]["warning_ratio"] == WARNING_RATIO
+
+
+def test_real_curtailment_scale_is_detected_where_the_old_rule_saw_nothing():
+    # 수요 700 MWh, 발전량 320 MWh: 발전량이 수요보다 작아 옛 규칙(발전량 - 수요)은 잉여 0이었다.
+    # 제주 출력제한은 수요의 절반에 못 미쳐도 걸리므로 새 규칙은 이를 CRITICAL로 본다.
+    result = evaluate(series(320), series(700), DAY)
+    assert max(0.0, 320 - 700) == 0  # 옛 규칙
+    assert result["risk"] == "CRITICAL"
+    assert result["peak_surplus_mwh"] == pytest.approx(320 - 0.40 * 700)
+
+
+def test_peak_hour_is_the_hour_with_the_largest_surplus_and_risk_is_per_hour():
+    generation = series(100)
+    generation[3] = generation[3].model_copy(update={"mwh": 400})
+    result = evaluate(generation, series(700), DAY)
+    assert result["peak_hour"] == 3
+    assert result["hourly"][3]["risk"] == "CRITICAL" and result["hourly"][0]["risk"] == "NORMAL"
+    assert result["hourly"][3]["ratio"] == pytest.approx(400 / 700)
+
+
+def test_boundary_band_is_just_below_the_critical_ratio():
+    assert is_boundary(BOUNDARY_RATIO) and is_boundary(CRITICAL_RATIO)
+    assert not is_boundary(0.42) and not is_boundary(0.451)
+    assert BOUNDARY_RATIO < CRITICAL_RATIO and risk_level(0.44) == "CAUTION"
+
+
+def test_non_positive_demand_is_rejected():
+    with pytest.raises(ValueError, match="Demand"):
+        evaluate(series(10), series(0), DAY)
 
 
 def test_deficit_is_not_negative_surplus():

@@ -2,6 +2,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from app.agents.state import AgentState
+from app.domain.rules import is_boundary
 from app.domain.schemas import AnalysisRequest, EnergyHour, WeatherHour
 from app.tools.tool4_risk import evaluate
 from app.tools.tool5_allocation import allocate
@@ -45,7 +46,7 @@ def build_graph(bundle, store, saver, max_refreshes):
             [EnergyHour.model_validate(r) for r in state["demand"]],
             AnalysisRequest.model_validate(state["request"]).date,
         )
-        boundary = 190 <= result["peak_surplus_mwh"] <= 200
+        boundary = is_boundary(result["peak_ratio"])
         return {
             "result": result,
             "boundary_unresolved": boundary and state["refresh_count"] >= max_refreshes,
@@ -54,6 +55,7 @@ def build_graph(bundle, store, saver, max_refreshes):
                 {
                     "refresh_count": state["refresh_count"],
                     "peak_surplus_mwh": result["peak_surplus_mwh"],
+                    "peak_ratio": result["peak_ratio"],
                     "risk": result["risk"],
                     "sources": state["sources"],
                 }
@@ -62,7 +64,7 @@ def build_graph(bundle, store, saver, max_refreshes):
         }
 
     def route(state):
-        if 190 <= state["result"]["peak_surplus_mwh"] <= 200:
+        if is_boundary(state["result"]["peak_ratio"]):
             if state["refresh_count"] < max_refreshes:
                 return "refresh"
         return "normal" if state["result"]["risk"] == "NORMAL" else "allocate"

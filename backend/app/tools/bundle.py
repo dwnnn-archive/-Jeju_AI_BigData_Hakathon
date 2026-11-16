@@ -56,6 +56,11 @@ class ToolBundle:
                 rows = KpxProvider(self.settings.kpx_url, client).fetch(request.date)
             return rows, {"source": "kpx_normalized_adapter", "simulated": False}
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            # 2중 안전: KPX 예측(중계)이 끊기면 자체 수요 모델이 이어받는다.
+            # 모델도 없을 때만 시연값 대체(허용한 경우) 또는 명시적 실패.
+            if self.settings.jeju_demand_model_dir:
+                rows, source = self._demand_model_demand(request)
+                return rows, {**source, "fallback_from": "kpx_unavailable_or_invalid"}
             return self._fallback("kpx_unavailable_or_invalid", lambda: demo.demand(request.date))
 
     def generation(self, request, weather, refresh):

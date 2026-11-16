@@ -2,6 +2,7 @@ import math
 import random
 from datetime import date, datetime, timedelta
 
+import httpx
 import pytest
 
 from app.domain.kr_holidays import (
@@ -47,7 +48,7 @@ def test_features_use_only_day_mean_temperature_and_cap_the_trend():
 xgboost = pytest.importorskip("xgboost")
 
 from app.core.config import Settings  # noqa: E402
-from app.domain.schemas import AnalysisRequest, WeatherHour  # noqa: E402
+from app.domain.schemas import AnalysisRequest, EnergyHour, WeatherHour  # noqa: E402
 from app.tools.bundle import ToolBundle  # noqa: E402
 from app.tools.demand_model import DemandModel  # noqa: E402
 from scripts.train_demand_model import day_type, train  # noqa: E402
@@ -168,3 +169,36 @@ def test_bundle_uses_demand_model_and_fails_closed_when_unavailable(trained, tmp
     plain = ToolBundle(Settings())  # 모델도 중계도 없으면 기존 동작(명시적 실패)
     with pytest.raises(ValueError, match="kpx_url_missing"):
         plain.demand(request)
+
+
+def test_kpx_relay_has_priority_and_model_takes_over_when_it_fails(trained, monkeypatch):
+    _, out = trained
+    day = date(2026, 11, 17)
+    weather = _weather(day, 12)
+    request = AnalysisRequest(date=day, region="jeju", mode="live")
+    relay_rows = [EnergyHour(date=day, hour=h, mwh=600) for h in range(24)]
+    settings = Settings(kpx_url="https://relay.example/jeju", jeju_demand_model_dir=out)
+
+    # 1순위: 중계가 정상이면 KPX 값을 쓴다(자체 모델은 부르지 않는다).
+    bundle = ToolBundle(settings)
+    monkeypatch.setattr("app.tools.bundle.KpxProvider.fetch", lambda self, target: relay_rows)
+    monkeypatch.setattr(bundle, "_jeju_city_weather", lambda req: pytest.fail("model must not run"))
+    rows, source = bundle.demand(request)
+    assert source["source"] == "kpx_normalized_adapter" and rows[0].mwh == 600
+
+    # 2순위: 중계가 끊기면 자체 모델이 즉시 이어받고, 어디서 넘어왔는지 기록한다.
+    def broken(self, target):
+        raise httpx.ConnectError("relay down")
+
+    monkeypatch.setattr("app.tools.bundle.KpxProvider.fetch", broken)
+    fallback = ToolBundle(settings)
+    monkeypatch.setattr(fallback, "_jeju_city_weather", lambda req: weather)
+    rows, source = fallback.demand(request)
+    assert source["model"] == "xgboost_jeju_demand"
+    assert source["fallback_from"] == "kpx_unavailable_or_invalid"
+    assert len(rows) == 24 and rows[0].mwh != 600
+
+    # 중계도 모델도 쓸 수 없으면 조용히 대체하지 않고 명시적으로 실패한다.
+    only_relay = ToolBundle(Settings(kpx_url="https://relay.example/jeju"))
+    with pytest.raises(ValueError, match="kpx_unavailable_or_invalid"):
+        only_relay.demand(request)

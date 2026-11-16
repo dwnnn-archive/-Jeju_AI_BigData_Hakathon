@@ -174,5 +174,5 @@ def test_demo_boundary_refresh_changes_only_demo_forecast():
     bundle = ToolBundle(Settings())
     req = AnalysisRequest(date=DAY, region="jeju", scenario="boundary")
     weather, _ = bundle.weather(req, 0)
-    assert bundle.generation(req, weather, 0)[0][12].mwh == 695
-    assert bundle.generation(req, weather, 1)[0][12].mwh == 730
+    assert bundle.generation(req, weather, 0)[0][12].mwh == 308
+    assert bundle.generation(req, weather, 1)[0][12].mwh == 510
