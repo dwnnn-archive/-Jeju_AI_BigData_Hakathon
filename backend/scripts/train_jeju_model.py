@@ -157,7 +157,13 @@ def _target_report(model, names, train, test, dates_test, y_test, x_test) -> dic
     }
 
 
-def train(csv_path: Path, out_dir: Path, wind_label: str = "potential") -> dict:
+def train(
+    csv_path: Path,
+    out_dir: Path,
+    wind_label: str = "potential",
+    wind_test_start: date | None = None,
+    solar_test_start: date | None = None,
+) -> dict:
     """wind_label: potential = KPX 풍력 + 출력제어량(제한이 없었다면), observed = KPX 값 그대로."""
     if wind_label not in ("potential", "observed"):
         raise ValueError("wind_label must be 'potential' or 'observed'")
@@ -174,10 +180,12 @@ def train(csv_path: Path, out_dir: Path, wind_label: str = "potential") -> dict:
         for r in rows
         if None not in (r["solar_mwh"], r["sky"], r["temperature_c"]) and not r["solar_curtailed"]
     ]
-    w_train = [r for r in wind if r["date"] < WIND_TEST_START]
-    w_test = [r for r in wind if r["date"] >= WIND_TEST_START]
-    s_train = [r for r in solar if r["date"] < SOLAR_TEST_START]
-    s_test = [r for r in solar if r["date"] >= SOLAR_TEST_START]
+    wind_split = wind_test_start or WIND_TEST_START
+    solar_split = solar_test_start or SOLAR_TEST_START
+    w_train = [r for r in wind if r["date"] < wind_split]
+    w_test = [r for r in wind if r["date"] >= wind_split]
+    s_train = [r for r in solar if r["date"] < solar_split]
+    s_test = [r for r in solar if r["date"] >= solar_split]
     if min(len(w_train), len(w_test), len(s_train), len(s_test)) < 48:
         raise ValueError("Each train/test split needs at least 48 rows")
 

@@ -152,6 +152,7 @@ npm run test:e2e
 - [백엔드/API 안내](backend/README.md) · [프론트엔드 안내](frontend/README.md)
 - [상태·승인 실행 계약](docs/architecture/execution-contract.md)
 - [데이터 연동·기존 회귀 모델 계약](docs/guides/data-contracts.md)
+- [파이프라인 점검(과거 날짜 vs 실제 출력제한일)](docs/guides/pipeline-evaluation.md)
 - [검증 기록](docs/verification/current.md)
 
 현재 구성은 단일 호스트 SQLite 작업 큐입니다. 여러 서버에 걸친 작업 분산, 실제 관측 데이터의 품질 검증, 전날 데이터 기반 다음날 예측 학습과 운영 평가, 현장 자원 상태 검증은 후속 구현 대상입니다.
