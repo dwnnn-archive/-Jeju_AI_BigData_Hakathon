@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import httpx
 
 from app.core.config import Settings
@@ -6,6 +8,7 @@ from app.providers import demo
 from app.providers.kma import KST, KmaProvider
 from app.providers.kma_nowcast import KmaNowcastProvider
 from app.providers.kpx import KpxProvider
+from app.repositories.forecasts import ForecastArchive
 from app.tools.demand_model import JEJU_CITY_GRID, DemandModel
 from app.tools.intraday import blend_weather, previous_evening_base
 from app.tools.jeju_model import GOSAN_GRID, JejuModel
@@ -18,10 +21,47 @@ from app.tools.tool2_predict_generation import (
 
 
 class ToolBundle:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, clock=None):
         self.settings = settings
+        self.clock = clock or (lambda: datetime.now(KST))
         self._jeju_model: JejuModel | None = None
         self._demand_model: DemandModel | None = None
+        self.archive: ForecastArchive | None = None
+        if settings.forecast_archive_enabled:
+            path = (
+                settings.forecast_archive_path or settings.database_path.parent / "forecasts.sqlite"
+            )
+            self.archive = ForecastArchive(path)
+
+    def now(self) -> datetime:
+        return self.clock()
+
+    @property
+    def _recorder(self):
+        return self.archive.safe_record_issue if self.archive else None
+
+    def _model_info(self) -> dict:
+        info: dict = {}
+        if self._jeju_model is not None:
+            meta = self._jeju_model.meta
+            info["generation"] = {
+                "wind_train_period": meta.get("wind", {}).get("train_period"),
+                "solar_train_period": meta.get("solar", {}).get("train_period"),
+            }
+        if self._demand_model is not None:
+            meta = self._demand_model.meta
+            info["demand"] = {
+                "train_period": meta.get("refit_period") or meta.get("train_period"),
+                "refit_all": bool(meta.get("refit_all")),
+            }
+        return info
+
+    def log_evaluation(self, run_id, phase, check_no, result, inputs=None) -> None:
+        """판정 결과와 입력을 저장 장치에 남긴다(저장 실패는 분석을 막지 않는다)."""
+        if self.archive:
+            self.archive.safe_record_evaluation(
+                run_id, phase, check_no, result, inputs, self._model_info()
+            )
 
     def _fallback(self, reason, factory):
         if not self.settings.allow_mock_fallback:
@@ -41,6 +81,7 @@ class ToolBundle:
                     client,
                     self.settings.kma_base_url,
                     self.settings.kma_auth_param,
+                    recorder=self._recorder,
                 ).fetch(request.date, *COORDINATES[request.region], grid=GRID[request.region])
             return rows, {"source": "kma", "simulated": False, "irradiance": "estimated"}
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
@@ -102,6 +143,7 @@ class ToolBundle:
                 client,
                 self.settings.kma_base_url,
                 self.settings.kma_auth_param,
+                recorder=self._recorder,
             ).fetch(request.date, *COORDINATES["jeju"], grid=GOSAN_GRID, base=base)
 
     def _jeju_model_generation(self, request, refresh):
@@ -137,6 +179,7 @@ class ToolBundle:
                 client,
                 self.settings.kma_base_url,
                 self.settings.kma_auth_param,
+                recorder=self._recorder,
             ).fetch(request.date, *COORDINATES["jeju"], grid=JEJU_CITY_GRID, base=base)
 
     def _demand_model_demand(self, request):
@@ -172,6 +215,7 @@ class ToolBundle:
                 client,
                 self.settings.kma_base_url,
                 self.settings.kma_auth_param,
+                recorder=self._recorder,
             )
             return provider.observation(*grid, now), provider.forecast(*grid, now)
 

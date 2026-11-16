@@ -2,5 +2,9 @@
   "normal": {"peak_generation_mwh": [210]},
   "critical": {"peak_generation_mwh": [510]},
   "boundary": {"peak_generation_mwh": [308, 510]},
-  "boundary_stable": {"peak_generation_mwh": [308, 308, 308, 308]}
+  "boundary_stable": {"peak_generation_mwh": [308, 308, 308, 308]},
+  "intraday_escalation": {
+    "peak_generation_mwh": [210],
+    "intraday_peak_generation_mwh": [210, 510]
+  }
 }

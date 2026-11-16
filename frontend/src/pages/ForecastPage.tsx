@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { ArrowUpRight, Clock3, Info } from "lucide-react";
 import type { AnalysisRun } from "../features/analysis/types";
+import { phaseLabel } from "../features/analysis/state";
 import { EmptyState } from "../components/EmptyState";
 import { AllocationPanel } from "../features/allocation/AllocationPanel";
 
@@ -70,6 +71,14 @@ export function ForecastPage({ run }: { run: AnalysisRun | null }) {
               : "분석 결과 없음"}
           </span>
           <dl className="summary-list">
+            <div>
+              <dt>판정 단계</dt>
+              <dd>
+                {run
+                  ? `${phaseLabel(run.phase ?? run.request.phase, run.check_no)}${run.result?.from_hour ? ` · ${run.result.from_hour}시 이후 판정` : ""}`
+                  : "—"}
+              </dd>
+            </div>
             <div>
               <dt>발전량/수요 최대 비율</dt>
               <dd>

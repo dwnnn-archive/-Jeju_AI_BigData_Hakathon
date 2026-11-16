@@ -100,16 +100,26 @@ class KmaProvider:
         auth_param: str = "authKey",
         page_size: int = 1000,
         max_pages: int = 10,
+        recorder=None,
     ):
+        self.recorder = recorder  # recorder(source, nx, ny, base_date, base_time, items)
         self.key, self.client = key, client
         self.url = f"{base_url.rstrip('/')}/{KMA_OPERATION}"
         self.auth_param, self.page_size, self.max_pages = auth_param, page_size, max_pages
 
     def _items(self, nx: int, ny: int, base_date: str, base_time: str) -> list[dict]:
         params = {"base_date": base_date, "base_time": base_time, "nx": nx, "ny": ny}
-        return fetch_items(
+        items = fetch_items(
             self.client, self.url, self.auth_param, self.key, params, self.page_size, self.max_pages
         )
+        if self.recorder:
+            self.recorder("short", nx, ny, base_date, base_time, items)
+        return items
+
+    def issue(self, nx: int, ny: int, base=None, now=None) -> list[dict]:
+        """발표 한 건의 원본 항목 전체(저장용). base 가 없으면 지금 기준 최신 발표분."""
+        base_date, base_time = base or issue_time(now or datetime.now(KST))
+        return self._items(nx, ny, base_date, base_time)
 
     def fetch(
         self,

@@ -12,6 +12,11 @@ export const labels: Record<AnalysisRun["status"], string> = {
   failed: "분석 실패",
   decision_pending: "결정 처리 확인 필요",
 };
+export function phaseLabel(phase?: string, checkNo?: number) {
+  return phase === "intraday"
+    ? `당일 ${checkNo ? `${checkNo}차 ` : ""}점검`
+    : "하루 전 계획";
+}
 export function statusLabel(transport: Transport, run: AnalysisRun | null) {
   if (transport === "sending") return "요청 전송 중";
   if (transport === "unknown") return "상태 확인 불가";

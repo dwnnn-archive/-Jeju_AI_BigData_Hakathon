@@ -1,5 +1,5 @@
 import type { AnalysisSummary } from "../analysis/types";
-import { labels } from "../analysis/state";
+import { labels, phaseLabel } from "../analysis/state";
 import { regions } from "../analysis/AnalysisForm";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -44,6 +44,7 @@ export function HistoryPanel({
             <thead>
               <tr>
                 <th>대상일 / 지역</th>
+                <th>단계</th>
                 <th>데이터</th>
                 <th>확인된 상태</th>
                 <th>분석 ID</th>
@@ -59,6 +60,12 @@ export function HistoryPanel({
                     <span className="muted">
                       {regions[item.request.region]}
                     </span>
+                  </td>
+                  <td>
+                    {phaseLabel(
+                      item.phase ?? item.request.phase,
+                      item.check_no,
+                    )}
                   </td>
                   <td>{item.simulation ? "시연" : "외부 · 검증 전"}</td>
                   <td>{labels[item.status]}</td>

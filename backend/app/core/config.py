@@ -21,11 +21,16 @@ class Settings(BaseSettings):
     kpx_gen_api_key: SecretStr | None = None  # KPX 지역별 시간별 태양광·풍력 발전량(odcloud)
     kpx_url: str | None = None
     allow_mock_fallback: bool = False
+    # 예보 저장 장치: 받은 예보 원본과 판정 기록을 쌓는다.
+    # 기본은 켜짐이고 경로는 DB 파일 옆 forecasts.sqlite 다.
+    forecast_archive_enabled: bool = True
+    forecast_archive_path: Path | None = None
     worker_enabled: bool = True
     heartbeat_seconds: float = Field(default=2, ge=0.1, le=5)
     worker_stale_seconds: float = Field(default=10, ge=10, le=60)
     result_ttl_seconds: int = Field(default=3600, ge=1, le=86400)
     max_refreshes: int = Field(default=1, ge=0, le=3)
+    max_intraday_checks: int = Field(default=2, ge=0, le=6)
     plants_path: Path = ROOT / "data/fixtures/plants.json"
     corrections_path: Path = ROOT / "data/corrections/plants.json"
     model_path: Path | None = None

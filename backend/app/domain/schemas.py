@@ -16,7 +16,11 @@ class AnalysisRequest(StrictModel):
     region: Region | None = None
     query: str | None = Field(default=None, max_length=1000)
     mode: Literal["demo", "live"] = "demo"
-    scenario: Literal["normal", "critical", "boundary", "boundary_stable"] = "critical"
+    scenario: Literal[
+        "normal", "critical", "boundary", "boundary_stable", "intraday_escalation"
+    ] = "critical"
+    # day_ahead: 하루 전 계획(단기예보). intraday: 하루 전이 정상이던 날의 당일 점검(초단기예보).
+    phase: Literal["day_ahead", "intraday"] = "day_ahead"
 
 
 class EnergyHour(StrictModel):

@@ -6,7 +6,14 @@ export const requestSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   region: z.enum(["jeju", "hallim", "jocheon", "haengwon"]),
   mode: z.enum(["demo", "live"]),
-  scenario: z.enum(["normal", "critical", "boundary", "boundary_stable"]),
+  scenario: z.enum([
+    "normal",
+    "critical",
+    "boundary",
+    "boundary_stable",
+    "intraday_escalation",
+  ]),
+  phase: z.enum(["day_ahead", "intraday"]).optional(),
   query: z.string().nullable().optional(),
 });
 export const statusSchema = z.enum([
@@ -65,6 +72,7 @@ export const runSchema = z
         peak_hour: z.number().int().min(0).max(23),
         peak_surplus_mwh: energy,
         peak_ratio: energy,
+        from_hour: z.number().int().min(0).max(23).optional(),
         thresholds: z.object({
           warning_ratio: energy,
           critical_ratio: energy,
@@ -124,6 +132,8 @@ export const runSchema = z
     trace: z.array(z.string()).optional(),
     refresh_count: z.number().optional(),
     boundary_unresolved: z.boolean().optional(),
+    phase: z.enum(["day_ahead", "intraday"]).optional(),
+    check_no: z.number().int().nonnegative().optional(),
   })
   .superRefine((run, ctx) => {
     if (
@@ -173,6 +183,8 @@ export const summarySchema = z.object({
   created_at: time,
   version: z.number().int().positive(),
   simulation: z.boolean(),
+  phase: z.enum(["day_ahead", "intraday"]).optional(),
+  check_no: z.number().int().nonnegative().optional(),
 });
 export type AnalysisRun = z.infer<typeof runSchema>;
 export type AnalysisRequest = z.infer<typeof requestSchema>;

@@ -123,6 +123,7 @@ LangGraph가 명시적인 계산·분기 규칙을 실행합니다. LLM이 발�
 - 시간대 `Asia/Seoul`, 하루 24개의 1시간 구간, 에너지 단위 MWh.
 - **위험 판단은 발전량 ÷ 수요 비율**입니다. 하루 중 최대 비율이 NORMAL `<0.40`, CAUTION `0.40 이상 0.45 미만`, CRITICAL `0.45 이상`. 잉여전력(흡수 대상)은 수요의 40% 경계선을 넘는 발전량 `max(0, 발전량 - 0.40 × 수요)`입니다. 제주 출력제한 이력(2021~2024-05)으로 보정한 값이며 이전의 `발전량 - 수요` 150/200 MWh 규칙은 실제 수요에서 출력제한을 한 번도 잡지 못해 바꿨습니다. 근거와 검증: [수요·위험 규칙](docs/guides/demand-options.md).
 - 비율 `0.43~0.45`(CRITICAL 직전)는 기본 1회 재조회. 경계가 해소되지 않으면 승인을 막습니다.
+- **이중 설계**: 기본은 하루 전 계획(단기예보)입니다. 하루 전이 **정상**으로 끝난 날만 당일에 초단기실황·초단기예보로 최대 2회 다시 점검하고(`phase: intraday`, 당일·직전 결과 NORMAL일 때만 서버가 접수), 위험이 나오면 하루 전 위험과 같은 배분·승인 흐름으로 갑니다. 실패한 점검은 횟수에 세지 않습니다. [당일 점검](docs/guides/intraday-check.md) · [예보 저장 장치](docs/guides/forecast-archive.md)
 - 수요는 KPX 하루전 예측(`KPX_URL` 중계)이 1순위이고, 중계가 없거나 끊기면 자체 수요 모델(`JEJU_DEMAND_MODEL_DIR`)이 이어받습니다. 둘 다 없으면 시연값으로 바꾸지 않고 실패합니다(폴백을 켠 경우만 시연값). [수요 모델](docs/guides/demand-model.md)
 - 배분은 **피크 1시간**만 대상으로 BESS 70 → VPP 30 → P2X 30 → EV 40 MWh 순서입니다. 24시간 ESS 운전 최적화가 아닙니다.
 - 위험일 시연: 수요 700 MWh, 정오 발전량 510 MWh(비율 0.73) → 피크 잉여 230 MWh → 흡수 170 MWh(73.913%) → 잔여 60 MWh, 수소 환산 390 kg.
@@ -154,6 +155,7 @@ npm run test:e2e
 - [데이터 연동·기존 회귀 모델 계약](docs/guides/data-contracts.md)
 - [파이프라인 점검(과거 날짜 vs 실제 출력제한일)](docs/guides/pipeline-evaluation.md)
 - [당일 점검(초단기예보, 시험 브랜치)](docs/guides/intraday-check.md)
+- [예보 저장 장치(ML 개선용 이력)](docs/guides/forecast-archive.md)
 - [검증 기록](docs/verification/current.md)
 
 현재 구성은 단일 호스트 SQLite 작업 큐입니다. 여러 서버에 걸친 작업 분산, 실제 관측 데이터의 품질 검증, 전날 데이터 기반 다음날 예측 학습과 운영 평가, 현장 자원 상태 검증은 후속 구현 대상입니다.

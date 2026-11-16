@@ -58,15 +58,29 @@ class KmaNowcastProvider:
         client: httpx.Client,
         base_url: str = KMA_BASE_URL,
         auth_param: str = "authKey",
+        recorder=None,
     ):
+        self.recorder = recorder  # recorder(source, nx, ny, base_date, base_time, items)
         self.key, self.client = key, client
         self.base_url, self.auth_param = base_url.rstrip("/"), auth_param
 
     def _items(self, operation: str, nx: int, ny: int, base: tuple[str, str]) -> list[dict]:
         params = {"base_date": base[0], "base_time": base[1], "nx": nx, "ny": ny}
-        return fetch_items(
+        items = fetch_items(
             self.client, f"{self.base_url}/{operation}", self.auth_param, self.key, params, 200, 3
         )
+        if self.recorder:
+            source = "ultra_ncst" if operation == NCST_OPERATION else "ultra_fcst"
+            self.recorder(source, nx, ny, base[0], base[1], items)
+        return items
+
+    def raw_observation(self, nx: int, ny: int, now: datetime) -> list[dict]:
+        """초단기실황 원본 항목 전체(저장용)."""
+        return self._items(NCST_OPERATION, nx, ny, observation_base(now))
+
+    def raw_forecast(self, nx: int, ny: int, now: datetime) -> list[dict]:
+        """초단기예보 원본 항목 전체(저장용)."""
+        return self._items(FCST_OPERATION, nx, ny, forecast_base(now))
 
     def observation(self, nx: int, ny: int, now: datetime) -> HourObs:
         """가장 최근 정시의 풍속·기온 실황."""

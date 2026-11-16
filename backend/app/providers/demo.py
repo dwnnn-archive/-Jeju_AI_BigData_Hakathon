@@ -32,6 +32,17 @@ def demand(target):
     return [EnergyHour(date=target, hour=h, mwh=DEMO_DEMAND_MWH) for h in range(24)]
 
 
+def intraday_generation(target, scenario, check_no):
+    """당일 점검 시연값. 시나리오에 따로 없으면 하루 전과 같은 값을 쓴다."""
+    spec = SCENARIOS[scenario]
+    peaks = spec.get("intraday_peak_generation_mwh") or spec["peak_generation_mwh"]
+    peak = peaks[min(max(check_no, 1) - 1, len(peaks) - 1)]
+    return [
+        EnergyHour(date=target, hour=h, mwh=peak if h == 12 else DEMO_BASE_GENERATION_MWH)
+        for h in range(24)
+    ]
+
+
 def generation(target, scenario, refresh):
     peaks = SCENARIOS[scenario]["peak_generation_mwh"]
     peak = peaks[min(refresh, len(peaks) - 1)]
