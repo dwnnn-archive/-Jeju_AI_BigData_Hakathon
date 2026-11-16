@@ -4,7 +4,7 @@ from app.core.config import Settings
 from app.providers import demo
 from app.providers.kma import KmaProvider
 from app.providers.kpx import KpxProvider
-from app.tools.tool1_kma_weather import COORDINATES
+from app.tools.tool1_kma_weather import COORDINATES, GRID
 from app.tools.tool2_predict_generation import (
     load_plants,
     model_prediction,
@@ -29,9 +29,12 @@ class ToolBundle:
             return self._fallback("kma_key_missing", lambda: demo.weather(request.date))
         try:
             with httpx.Client(timeout=self.settings.http_timeout) as client:
-                rows = KmaProvider(key.get_secret_value(), client).fetch(
-                    request.date, *COORDINATES[request.region]
-                )
+                rows = KmaProvider(
+                    key.get_secret_value(),
+                    client,
+                    self.settings.kma_base_url,
+                    self.settings.kma_auth_param,
+                ).fetch(request.date, *COORDINATES[request.region], grid=GRID[request.region])
             return rows, {"source": "kma", "simulated": False, "irradiance": "estimated"}
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             # Never include provider URLs, service keys or upstream response bodies in errors.

@@ -11,6 +11,14 @@ COORDINATES = {
     "jocheon": (33.535, 126.634),
     "haengwon": (33.556, 126.811),
 }
+# 가이드 별첨 엑셀(격자_위경도, 2026-09-30판)의 행정구역별 공식 격자 (nx, ny).
+# 행원은 구좌읍 소속이라 구좌읍 값을 사용한다.
+GRID = {
+    "jeju": (53, 38),  # 제주시
+    "hallim": (48, 36),  # 제주시 한림읍
+    "jocheon": (55, 39),  # 제주시 조천읍
+    "haengwon": (59, 38),  # 제주시 구좌읍
+}
 
 
 def parse_request(request: AnalysisRequest, today: date | None = None) -> AnalysisRequest:

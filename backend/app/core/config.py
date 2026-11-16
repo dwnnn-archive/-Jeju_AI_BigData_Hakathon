@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     approver_token: SecretStr | None = None
     approver_id: str = "local-officer"
     kma_api_key: SecretStr | None = None
+    kma_base_url: str = "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0"
+    # 가이드의 요청 명세표는 serviceKey, 예제 URL은 authKey로 표기가 달라 설정으로 열어 둔다.
+    kma_auth_param: Literal["authKey", "serviceKey"] = "authKey"
     kpx_url: str | None = None
     allow_mock_fallback: bool = False
     worker_enabled: bool = True
