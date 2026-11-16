@@ -62,6 +62,28 @@ def test_training_csv_joins_marks_usable_wind_and_fills_cloud_briefly(tmp_path):
     assert by_hour["2024-05-31T00"]["wind_usable"] == "1"
 
 
+def test_training_csv_fills_curtailment_columns_only_when_history_is_given(tmp_path):
+    kpx, asos, curt = tmp_path / "kpx", tmp_path / "asos", tmp_path / "curt"
+    for d in (kpx, asos, curt):
+        d.mkdir()
+    _write_kpx(kpx)
+    _write_asos(asos)
+    header = "일자,제어지역,누적 시행회차," + ",".join(f"{h}시" for h in range(1, 25))
+    (curt / "제주 풍력 출력제어횟수 및 제어량.csv").write_bytes(
+        (header + "\n2024-05-31,제주,1," + ",".join(["0"] * 2 + ["40"] + ["0"] * 21)).encode(
+            "cp949"
+        )
+    )
+    with_hist, without = tmp_path / "a.csv", tmp_path / "b.csv"
+    build(kpx, asos, with_hist, curtailment=curt)
+    build(kpx, asos, without)
+    a = {r["timestamp"][:13]: r for r in csv.DictReader(with_hist.open(encoding="utf-8"))}
+    b = list(csv.DictReader(without.open(encoding="utf-8")))
+    assert a["2024-05-31T02"]["wind_curtailed_mwh"] == "40.0"  # 3시(종료) → 2시(시작)
+    assert a["2024-05-31T00"]["wind_curtailed_mwh"] == "0.0"  # 이력이 있고 제어 없음
+    assert {r["wind_curtailed_mwh"] for r in b} == {""}  # 이력을 안 주면 알 수 없음
+
+
 # ---- 학습·추론 (xgboost 필요) ----
 xgboost = pytest.importorskip("xgboost")
 

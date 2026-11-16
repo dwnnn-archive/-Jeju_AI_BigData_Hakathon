@@ -5,7 +5,7 @@
 
 선행: scripts.kpx_generation 이 읽을 수 있는 KPX 원본 폴더, scripts.collect_asos 가 만든 ASOS 폴더.
 출력 열: timestamp, wind_mwh, solar_mwh, wind_usable, wind_ms, temperature_c,
-         cloud_tenths, sky, cloud_filled
+         cloud_tenths, sky, cloud_filled, wind_curtailed_mwh, solar_curtailed
 - wind_usable: 풍력 정답으로 쓸 수 있는 구간 표시(2024-05-31까지).
   이후는 KPX 집계가 급락해 제외한다.
 - sky: 전운량을 예보의 하늘상태(1/3/4)로 바꾼 값. 전운량이 비는 시간은 직전 관측을
@@ -20,6 +20,7 @@ from pathlib import Path
 
 from app.providers.asos import JEJU_STATIONS
 from app.tools.jeju_model import sky_from_cloud_tenths
+from scripts.kpx_curtailment import load_jeju_curtailment
 from scripts.kpx_generation import KST, WIND_USABLE_END, load_jeju
 
 MAX_FILL_HOURS = 3
@@ -33,6 +34,8 @@ FIELDS = [
     "cloud_tenths",
     "sky",
     "cloud_filled",
+    "wind_curtailed_mwh",
+    "solar_curtailed",
 ]
 
 
@@ -47,11 +50,19 @@ def read_asos(path: Path) -> dict[datetime, dict[str, float | None]]:
     return out
 
 
-def build(kpx_dir: Path, asos_dir: Path, out: Path, station: str = "gosan") -> dict[str, int]:
+def build(
+    kpx_dir: Path,
+    asos_dir: Path,
+    out: Path,
+    station: str = "gosan",
+    curtailment: Path | None = None,
+) -> dict[str, int]:
     if station not in JEJU_STATIONS:
         raise ValueError(f"Unknown station: {station}")
     kpx = load_jeju(kpx_dir)
     asos = read_asos(asos_dir / f"asos_{station}.csv")
+    # 출력제어 이력을 주면 제어가 없던 시간은 0, 주지 않으면 빈 칸("알 수 없음")으로 둔다.
+    curt_wind, curt_solar = load_jeju_curtailment(curtailment) if curtailment else ({}, {})
     stats = {"rows": 0, "wind_rows": 0, "solar_rows": 0, "cloud_filled": 0, "no_weather": 0}
     last_cloud: tuple[datetime, float] | None = None
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -83,6 +94,8 @@ def build(kpx_dir: Path, asos_dir: Path, out: Path, station: str = "gosan") -> d
                     "" if cloud is None else cloud,
                     sky,
                     filled,
+                    "" if curtailment is None else curt_wind.get((d, h), 0.0),
+                    "" if curtailment is None else int((d, h) in curt_solar),
                 ]
             )
             stats["rows"] += 1
@@ -98,8 +111,13 @@ def main() -> int:
     p.add_argument("asos_dir", type=Path)
     p.add_argument("out", type=Path)
     p.add_argument("--station", default="gosan", choices=sorted(JEJU_STATIONS))
+    p.add_argument(
+        "--curtailment",
+        type=Path,
+        help="KPX 제주 출력제어 이력(zip 또는 폴더). 주면 제어 열을 채운다.",
+    )
     a = p.parse_args()
-    print(build(a.kpx_dir, a.asos_dir, a.out, a.station))
+    print(build(a.kpx_dir, a.asos_dir, a.out, a.station, a.curtailment))
     return 0
 
 
