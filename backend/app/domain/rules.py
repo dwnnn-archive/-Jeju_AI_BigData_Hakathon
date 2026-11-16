@@ -30,7 +30,15 @@ def is_boundary(peak_ratio: float) -> bool:
     return BOUNDARY_RATIO <= peak_ratio <= CRITICAL_RATIO
 
 
-def evaluate(generation: list[EnergyHour], demand: list[EnergyHour], target: date) -> dict:
+def evaluate(
+    generation: list[EnergyHour],
+    demand: list[EnergyHour],
+    target: date,
+    from_hour: int = 0,
+) -> dict:
+    """from_hour 이후(포함) 시간으로만 피크와 등급을 정한다(당일 점검에서 지난 시간 제외)."""
+    if not 0 <= from_hour <= 23:
+        raise ValueError("from_hour must be within 0..23")
     generation, demand = validate_day(generation, target), validate_day(demand, target)
     hourly = []
     for g, d in zip(generation, demand, strict=True):
@@ -47,14 +55,16 @@ def evaluate(generation: list[EnergyHour], demand: list[EnergyHour], target: dat
                 "risk": risk_level(ratio),
             }
         )
-    peak = max(hourly, key=lambda row: (row["surplus_mwh"], row["ratio"]))
-    peak_ratio = max(row["ratio"] for row in hourly)
+    window = [row for row in hourly if row["hour"] >= from_hour]
+    peak = max(window, key=lambda row: (row["surplus_mwh"], row["ratio"]))
+    peak_ratio = max(row["ratio"] for row in window)
     return {
         "hourly": hourly,
         "peak_hour": peak["hour"],
         "peak_surplus_mwh": peak["surplus_mwh"],
         "peak_ratio": peak_ratio,
         "risk": risk_level(peak_ratio),
+        "from_hour": from_hour,
         "thresholds": {
             "warning_ratio": WARNING_RATIO,
             "critical_ratio": CRITICAL_RATIO,

@@ -58,6 +58,39 @@ def _result_ok(header: dict) -> bool:
         return False
 
 
+def fetch_items(
+    client: httpx.Client,
+    url: str,
+    auth_param: str,
+    key: str,
+    params: dict,
+    page_size: int = 1000,
+    max_pages: int = 10,
+) -> list[dict]:
+    """기상청 조회서비스의 모든 페이지를 받아 item 목록으로 합친다(단기·초단기 공용)."""
+    items: list[dict] = []
+    for page in range(1, max_pages + 1):
+        response = client.get(
+            url,
+            params={
+                auth_param: key,
+                "dataType": "JSON",
+                "numOfRows": page_size,
+                "pageNo": page,
+                **params,
+            },
+        )
+        response.raise_for_status()
+        payload = response.json()["response"]
+        if not _result_ok(payload["header"]):
+            raise ValueError("KMA returned an unsuccessful result code")
+        body = payload["body"]
+        items.extend(body["items"]["item"])
+        if len(items) >= int(body["totalCount"]):
+            return items
+    raise ValueError("KMA response exceeded the page limit")
+
+
 class KmaProvider:
     def __init__(
         self,
@@ -73,31 +106,10 @@ class KmaProvider:
         self.auth_param, self.page_size, self.max_pages = auth_param, page_size, max_pages
 
     def _items(self, nx: int, ny: int, base_date: str, base_time: str) -> list[dict]:
-        items: list[dict] = []
-        for page in range(1, self.max_pages + 1):
-            response = self.client.get(
-                self.url,
-                params={
-                    self.auth_param: self.key,
-                    "dataType": "JSON",
-                    "numOfRows": self.page_size,
-                    "pageNo": page,
-                    "base_date": base_date,
-                    "base_time": base_time,
-                    "nx": nx,
-                    "ny": ny,
-                },
-            )
-            response.raise_for_status()
-            payload = response.json()["response"]
-            if not _result_ok(payload["header"]):
-                raise ValueError("KMA returned an unsuccessful result code")
-            body = payload["body"]
-            page_items = body["items"]["item"]
-            items.extend(page_items)
-            if len(items) >= int(body["totalCount"]):
-                return items
-        raise ValueError("KMA response exceeded the page limit")
+        params = {"base_date": base_date, "base_time": base_time, "nx": nx, "ny": ny}
+        return fetch_items(
+            self.client, self.url, self.auth_param, self.key, params, self.page_size, self.max_pages
+        )
 
     def fetch(
         self,
@@ -105,9 +117,10 @@ class KmaProvider:
         lat: float,
         lon: float,
         grid: tuple[int, int] | None = None,
+        base: tuple[str, str] | None = None,
     ) -> list[WeatherHour]:
         nx, ny = grid or grid_coordinates(lat, lon)
-        base_date, base_time = issue_time(datetime.now(KST))
+        base_date, base_time = base or issue_time(datetime.now(KST))
         hours = {}
         for item in self._items(nx, ny, base_date, base_time):
             if item["fcstDate"] != target.strftime("%Y%m%d"):

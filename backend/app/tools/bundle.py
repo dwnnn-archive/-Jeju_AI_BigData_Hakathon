@@ -1,10 +1,13 @@
 import httpx
 
 from app.core.config import Settings
+from app.domain.rules import evaluate
 from app.providers import demo
-from app.providers.kma import KmaProvider
+from app.providers.kma import KST, KmaProvider
+from app.providers.kma_nowcast import KmaNowcastProvider
 from app.providers.kpx import KpxProvider
 from app.tools.demand_model import JEJU_CITY_GRID, DemandModel
+from app.tools.intraday import blend_weather, previous_evening_base
 from app.tools.jeju_model import GOSAN_GRID, JejuModel
 from app.tools.tool1_kma_weather import COORDINATES, GRID
 from app.tools.tool2_predict_generation import (
@@ -88,7 +91,7 @@ class ToolBundle:
             rows = physical_prediction(weather, wind, solar)
         return rows, source
 
-    def _gosan_weather(self, request):
+    def _gosan_weather(self, request, base=None):
         """제주 전체 모델의 입력: 학습과 같은 지점(고산)의 단기예보 격자."""
         key = self.settings.kma_api_key
         if not key or not key.get_secret_value():
@@ -99,7 +102,7 @@ class ToolBundle:
                 client,
                 self.settings.kma_base_url,
                 self.settings.kma_auth_param,
-            ).fetch(request.date, *COORDINATES["jeju"], grid=GOSAN_GRID)
+            ).fetch(request.date, *COORDINATES["jeju"], grid=GOSAN_GRID, base=base)
 
     def _jeju_model_generation(self, request, refresh):
         try:
@@ -123,7 +126,7 @@ class ToolBundle:
             "validated": False,
         }
 
-    def _jeju_city_weather(self, request):
+    def _jeju_city_weather(self, request, base=None):
         """수요 모델의 입력: 학습과 같은 지점(제주시)의 단기예보 격자."""
         key = self.settings.kma_api_key
         if not key or not key.get_secret_value():
@@ -134,7 +137,7 @@ class ToolBundle:
                 client,
                 self.settings.kma_base_url,
                 self.settings.kma_auth_param,
-            ).fetch(request.date, *COORDINATES["jeju"], grid=JEJU_CITY_GRID)
+            ).fetch(request.date, *COORDINATES["jeju"], grid=JEJU_CITY_GRID, base=base)
 
     def _demand_model_demand(self, request):
         try:
@@ -154,4 +157,64 @@ class ToolBundle:
             "target": "KPX 제주 발전단 수요 예측(자체 모델)",
             "weather_grid": "jeju_city",
             "validated": False,
+        }
+
+    # ---- 당일 점검 (초단기실황·초단기예보) ----
+
+    def _nowcast(self, grid, now):
+        """(초단기실황, 이후 6시간 초단기예보). 키가 없거나 호출이 실패하면 예외를 그대로 낸다."""
+        key = self.settings.kma_api_key
+        if not key or not key.get_secret_value():
+            raise ValueError("kma_key_missing")
+        with httpx.Client(timeout=self.settings.http_timeout) as client:
+            provider = KmaNowcastProvider(
+                key.get_secret_value(),
+                client,
+                self.settings.kma_base_url,
+                self.settings.kma_auth_param,
+            )
+            return provider.observation(*grid, now), provider.forecast(*grid, now)
+
+    def _load_generation_model(self):
+        if not self.settings.jeju_model_dir:
+            raise ValueError("jeju_model_dir_missing")
+        if self._jeju_model is None:
+            self._jeju_model = JejuModel(self.settings.jeju_model_dir)
+        return self._jeju_model
+
+    def _load_demand_model(self):
+        if not self.settings.jeju_demand_model_dir:
+            raise ValueError("jeju_demand_model_dir_missing")
+        if self._demand_model is None:
+            self._demand_model = DemandModel(self.settings.jeju_demand_model_dir)
+        return self._demand_model
+
+    def intraday_check(self, request, now, day_ahead_base=None):
+        """하루 전 예보(전날 23시 발표)에 초단기실황·초단기예보를 덧씌워 당일 위험을 다시 판정한다.
+
+        시연값이나 다른 값으로 조용히 대체하지 않는다. 입력이 하나라도 없으면 예외를 낸다.
+        반환값의 inputs 는 나중에 예보 정확도를 평가할 수 있도록 저장할 수 있는 입력 기록이다.
+        """
+        target, now = request.date, now.astimezone(KST)
+        base = day_ahead_base or previous_evening_base(target)
+        gen_model, demand_model = self._load_generation_model(), self._load_demand_model()
+        day_gen = self._gosan_weather(request, base=base)
+        day_dem = self._jeju_city_weather(request, base=base)
+        obs_g, ultra_g = self._nowcast(GOSAN_GRID, now)
+        obs_c, ultra_c = self._nowcast(JEJU_CITY_GRID, now)
+        gen_weather, sources = blend_weather(day_gen, obs_g, ultra_g, target)
+        dem_weather, _ = blend_weather(day_dem, obs_c, ultra_c, target)
+        result = evaluate(
+            gen_model.predict(gen_weather), demand_model.predict(dem_weather), target, now.hour
+        )
+        return {
+            "result": result,
+            "inputs": {
+                "checked_at": now.isoformat(),
+                "from_hour": now.hour,
+                "day_ahead_base": list(base),
+                "sources": {str(h): v for h, v in sources.items()},
+                "generation_weather": [w.model_dump(mode="json") for w in gen_weather],
+                "demand_weather": [w.model_dump(mode="json") for w in dem_weather],
+            },
         }
