@@ -37,10 +37,14 @@ def _result_ok(header: dict) -> bool:
 
 
 def _value(item: dict, field: str) -> float | None:
-    """값이 비었거나 품질플래그가 정상(null/빈값)이 아니면 None."""
+    """값이 비었거나 품질플래그가 정상이 아니면 None.
+
+    가이드는 정상을 null로 적었지만 실제 응답은 2018년 이전 자료에서 정상에 "0"을 쓴다.
+    오류 1, 결측 9 이외는 정상으로 본다.
+    """
     raw = item.get(field)
     flag = item.get(f"{field}Qcflg")
-    if raw in (None, "") or flag not in (None, ""):
+    if raw in (None, "") or flag not in (None, "", "0"):
         return None
     return float(raw)
 

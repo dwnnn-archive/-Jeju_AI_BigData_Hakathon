@@ -78,6 +78,12 @@ def test_quality_flags_and_blank_values_become_none():
     assert rows[3].wind_ms == 7.2
 
 
+def test_zero_flag_is_normal_for_pre_2019_records():
+    # 실제 API: 2017~2018 자료는 정상 플래그가 "0"이다(가이드는 null로 표기).
+    rows = AsosProvider("k", _client([_item(0, wsQcflg="0", taQcflg="0")])).fetch(185, START, START)
+    assert rows[0].wind_ms == 7.2 and rows[0].temperature_c == 3.6
+
+
 def test_paginates_and_accepts_guide_example_result_code():
     seen = []
     items = [_item(h) for h in range(24)]
