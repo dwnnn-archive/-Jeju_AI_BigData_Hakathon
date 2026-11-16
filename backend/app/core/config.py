@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     model_path: Path | None = None
     # 제주 전체 단위 모델 폴더(wind.json, solar.json, meta.json). 설정하면 live 발전량 예측에 쓴다.
     jeju_model_dir: Path | None = None
+    # 제주 수요 예측 모델 폴더(demand.json, meta.json). KPX_URL(중계)이 없을 때 live 수요에 쓴다.
+    jeju_demand_model_dir: Path | None = None
     notification_mode: Literal["mock", "webhook"] = "mock"
     notification_url: str | None = None
     notification_token: SecretStr | None = None
