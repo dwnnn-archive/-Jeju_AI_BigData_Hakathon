@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     kma_base_url: str = "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0"
     # 가이드의 요청 명세표는 serviceKey, 예제 URL은 authKey로 표기가 달라 설정으로 열어 둔다.
     kma_auth_param: Literal["authKey", "serviceKey"] = "authKey"
+    asos_api_key: SecretStr | None = None  # 학습용 과거 실측 기상(ASOS). 디코딩된 키.
     kpx_url: str | None = None
     allow_mock_fallback: bool = False
     worker_enabled: bool = True
