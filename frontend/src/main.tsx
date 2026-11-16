@@ -8,6 +8,9 @@ import "./styles/components.css";
 import "./features/analysis/analysis.css";
 import "./features/allocation/allocation.css";
 import "./features/approval/approval.css";
+import "./styles/dashboard.css";
+import "./styles/landing.css";
+import "./styles/login.css";
 import "./styles/responsive.css";
 import { App } from "./app/App";
 

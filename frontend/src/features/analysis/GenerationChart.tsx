@@ -42,27 +42,27 @@ export function GenerationChart({
             data={result.hourly}
             margin={{ top: 15, right: 18, bottom: 0, left: 0 }}
           >
-            <CartesianGrid stroke="#e5ebef" vertical={false} />
+            <CartesianGrid stroke="#f1f1f5" vertical={false} />
             <XAxis
               dataKey="hour"
               tickFormatter={(h) => `${String(h).padStart(2, "0")}시`}
               interval={3}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#586b78", fontSize: 12 }}
+              tick={{ fill: "#767676", fontSize: 12 }}
               dy={8}
             />
             <YAxis
               width={44}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#586b78", fontSize: 12 }}
+              tick={{ fill: "#767676", fontSize: 12 }}
             />
             <Tooltip
               labelFormatter={(h) => `${h}:00–${Number(h) + 1}:00 KST`}
               contentStyle={{
                 borderRadius: 10,
-                border: "1px solid #dbe4e9",
+                border: "1px solid #e5e5ec",
                 fontSize: 13,
               }}
             />
@@ -70,7 +70,7 @@ export function GenerationChart({
               type="linear"
               dataKey="surplus_mwh"
               name="잉여전력 (MWh)"
-              fill="#f3dfb3"
+              fill="#ffe08a"
               stroke="none"
               isAnimationActive={false}
             />
@@ -78,7 +78,7 @@ export function GenerationChart({
               type="linear"
               dataKey="generation_mwh"
               name="예상 발전량 (MWh)"
-              stroke="#087d80"
+              stroke="#009e42"
               strokeWidth={2.5}
               dot={false}
               isAnimationActive={false}
@@ -87,7 +87,7 @@ export function GenerationChart({
               type="linear"
               dataKey="demand_mwh"
               name="예상 수요 (MWh)"
-              stroke="#6c7f91"
+              stroke="#505050"
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={false}

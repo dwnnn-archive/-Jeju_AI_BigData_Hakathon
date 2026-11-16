@@ -4,6 +4,7 @@ import { runFixture } from "../src/test/fixtures";
 
 async function analyze(page: Page) {
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "계산 완료 · 검토 필요",
@@ -14,6 +15,7 @@ test("real API: empty → result → review → mock notification, with keyboard
   page,
 }, testInfo) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "분석 요청 전",
   );
@@ -98,6 +100,7 @@ test("receipt delay and queue are never shown as running; only worker evidence s
     }),
   );
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toHaveText(
     "요청 전송 중",
@@ -212,6 +215,7 @@ test("history does not claim there are no records before the server responds", a
     await route.fulfill({ status: 503, json: { detail: "temporary failure" } });
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await page.getByRole("button", { name: "분석 이력", exact: true }).click();
   await expect(page.getByText("이력을 확인하고 있습니다.")).toBeVisible();
   await expect(page.getByText("저장된 분석이 없습니다")).toHaveCount(0);

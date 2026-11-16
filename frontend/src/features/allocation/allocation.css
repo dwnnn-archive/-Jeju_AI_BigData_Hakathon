@@ -4,10 +4,10 @@
   gap: 16px;
 }
 .resource {
-  border: 1px solid #e3eaef;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
   padding: 18px;
-  background: #fcfdfd;
+  background: var(--surface);
 }
 .resource-top {
   display: flex;
@@ -21,7 +21,7 @@
 }
 .resource-icon {
   display: flex;
-  color: var(--primary);
+  color: var(--primary-ink);
 }
 .resource h3 {
   font-size: 13px;
@@ -30,13 +30,13 @@
 .resource-value {
   font-variant-numeric: tabular-nums;
   font-size: 26px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.4;
   margin: 7px 0 12px;
 }
 .resource-value span {
   font-size: 11px;
-  font-weight: 450;
+  font-weight: 400;
   color: var(--muted);
 }
 meter {
@@ -44,11 +44,11 @@ meter {
   height: 7px;
   display: block;
   border: none;
-  background: #e6eded;
+  background: var(--bg-sub);
   border-radius: 4px;
 }
 meter::-webkit-meter-bar {
-  background: #e6eded;
+  background: var(--bg-sub);
   border: 0;
   height: 7px;
 }

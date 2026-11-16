@@ -1,23 +1,116 @@
+/*
+ * Design tokens — Figma "PC_스타일가이드" (2026_업데이트.v02)
+ * Colors: 06. Color Guide / Type: 05. Typography Guide / Spacing: 01. Spacing
+ * Buttons: 07. Button Guide. Radius values are estimated from the guide screenshots.
+ */
 :root {
-  --background: #f3f6f8;
-  --surface: #fff;
-  --text: #20313f;
-  --muted: #586b78;
-  --primary: #067477;
-  --primary-soft: #eaf5f3;
+  /* Brand */
+  --brand-main: #00c853;
+  --brand-sub-1: #6200ea;
+  --brand-sub-2: #00c853;
+
+  /* Font colors */
+  --text: #111111;
+  --text-sub: #505050;
+  --muted: #767676;
+  --disabled: #999999;
+
+  /* Line colors */
+  --line-light: #f1f1f5;
+  --border: #e5e5ec;
+  --line-strong: #111111;
+
+  /* Background colors */
+  --page-bg: #ffffff; /* page canvas (white) */
+  --background: #f7f7fb; /* subtle fill inside cards/notes */
+  --bg-sub: #f1f1f5;
+  --surface: #ffffff;
+
+  /* Primary action (= brand main, green).
+     White on #00C853 is only 2.24:1, so fills carry dark text (--on-primary, 8.4:1)
+     and green text on white uses --primary-ink (#007A35, 5.5:1). */
+  --primary: var(--brand-main);
+  --primary-hover: #00b34a;
+  --on-primary: #111111;
+  --primary-ink: #007a35;
+  --primary-chart: #009e42;
+  --primary-soft: #e6f9ee;
+  --primary-line: #a6ebc2;
+
+  /* Status — Figma input state colors. Yellow/green are fills only;
+     text on white uses the darker *-text tokens to keep WCAG AA contrast. */
+  --danger: #d32f2f;
+  --danger-hover: #b71c1c;
+  --danger-soft: #fdecec;
+  --warning-fill: #fbc02d;
   --warning: #8f5b0d;
-  --danger: #b23846;
-  --border: #dde5eb;
-  --panel-radius: 12px;
-  --control-radius: 8px;
-  --page-space: 32px;
-  --gap: 24px;
+  --warning-text: #7a4d0a;
+  --warning-soft: #fff7e0;
+  --warning-line: #f5dc94;
+  --success-fill: #00c853;
+  --success-text: #1b7a3e;
+  --success-soft: #e6f9ee;
+  --surplus: #ffe08a;
+
+  /* Overlay & focus */
+  --dim: rgb(17 17 17 / 60%);
+  --shadow-modal: 0 20px 60px rgb(17 17 17 / 18%);
+  --focus: #007a35;
+
+  /* Typography scale (size / line-height) */
+  --font-headline-3: 32px;
+  --font-headline-4: 28px;
+  --font-headline-5: 24px;
+  --font-headline-6: 20px;
+  --font-title: 18px;
+  --font-body-1: 16px;
+  --font-body-2: 15px;
+  --font-body-3: 14px;
+  --font-body-4: 13px;
+  --font-caption-1: 12px;
+  --font-caption-2: 11px;
+  --leading-headline: 1.4;
+  --leading-body: 1.45;
+  --tracking: -0.025em;
+  --weight-semibold: 600;
+  --weight-medium: 500;
+  --weight-regular: 400;
+
+  /* Spacing (even numbers only) */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+
+  /* Shape */
+  --panel-radius: 16px;
+  --control-radius: 4px;
+  --chip-radius: 4px;
+
+  /* Buttons (07. Button Guide) */
+  --button-lg: 48px;
+  --button-md: 42px;
+  --button-sm: 36px;
+  --button-gap: 8px;
+
+  /* Layout */
+  --page-space: var(--space-32);
+  --gap: var(--space-24);
   --fast: 80ms;
-  --scroll-thumb: #a8b7c1;
-  --scroll-track: #edf1f4;
+  --scroll-thumb: #c4c4ce;
+  --scroll-track: var(--line-light);
+
   font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  letter-spacing: var(--tracking);
   color: var(--text);
-  background: var(--background);
+  background: var(--page-bg);
 }

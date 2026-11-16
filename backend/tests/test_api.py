@@ -243,3 +243,28 @@ def test_non_ascii_auth_headers_are_unauthorized_not_server_errors(settings):
         run = create(client)
         response = decide(client, run["id"], headers={b"X-Approver-Token": b"\xff"})
         assert response.status_code == 401
+
+
+def test_login_check_verifies_officer_id_and_token(client):
+    ok = client.post("/api/v1/auth/check", json={"approver_id": "local-officer"}, headers=AUTH)
+    assert ok.status_code == 200
+    assert ok.json() == {"approver_id": "local-officer"}
+    wrong_token = client.post(
+        "/api/v1/auth/check",
+        json={"approver_id": "local-officer"},
+        headers={"X-Approver-Token": "nope"},
+    )
+    assert wrong_token.status_code == 401
+    wrong_id = client.post("/api/v1/auth/check", json={"approver_id": "someone"}, headers=AUTH)
+    assert wrong_id.status_code == 401
+    missing = client.post("/api/v1/auth/check", json={"approver_id": "local-officer"})
+    assert missing.status_code == 401
+
+
+def test_login_check_is_disabled_without_configured_token(settings):
+    settings.approver_token = None
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/api/v1/auth/check", json={"approver_id": "local-officer"}, headers=AUTH
+        )
+        assert response.status_code == 503
