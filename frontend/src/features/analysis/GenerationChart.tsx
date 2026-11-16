@@ -49,14 +49,14 @@ export function GenerationChart({
               interval={3}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#767676", fontSize: 12 }}
+              tick={{ fill: "#6b6b6b", fontSize: 12 }}
               dy={8}
             />
             <YAxis
               width={44}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#767676", fontSize: 12 }}
+              tick={{ fill: "#6b6b6b", fontSize: 12 }}
             />
             <Tooltip
               labelFormatter={(h) => `${h}:00–${Number(h) + 1}:00 KST`}

@@ -9,14 +9,14 @@ colors:
   surface: "#FFFFFF"
   text: "#111111"
   textSub: "#505050"
-  muted: "#767676"
+  muted: "#6B6B6B"
   disabled: "#999999"
   line: "#E5E5EC"
   lineLight: "#F1F1F5"
   primary: "#00C853"
   onPrimary: "#111111"
   primaryInk: "#007A35"
-  danger: "#D32F2F"
+  danger: "#C62828"
   warningFill: "#FBC02D"
   warningText: "#8F5B0D"
   successFill: "#00C853"
@@ -44,7 +44,7 @@ components:
 지자체 담당자의 다음날 발전량 검토 도구. 차분한 밝은 수급 분석표와 24시간 위험 띠가 특징이다. 업무 상태의 진실성이 시각 효과보다 우선한다. 현재 시연 상태를 지속적으로 표시한다.
 
 ## Colors
-Figma 06. Color Guide를 따르며 값은 frontend/src/styles/tokens.css의 CSS 변수로 연결한다. 브랜드 초록(#00C853)은 기본 행동의 면 색이며, 그 위 글자는 #111111(8.4:1)을 쓴다. 흰 배경 위 초록 글자·링크는 #007A35(5.5:1)를 쓴다(흰 글자 on #00C853은 2.24:1로 금지), 노랑은 경계, 적색은 위험/실패이며 항상 텍스트와 함께 사용한다. 노랑(#FBC02D)·초록(#00C853)은 흰 배경 위 글자 대비가 부족하므로 배경·점·막대에만 쓰고 글자는 --warning-text·--success-text를 쓴다. 글자색은 #111111/#505050/#767676, #999999는 비활성에만 쓴다. 버튼·입력칸 선은 #E5E5EC, 팝업 딤은 #111111 60%.
+Figma 06. Color Guide를 따르며 값은 frontend/src/styles/tokens.css의 CSS 변수로 연결한다. 브랜드 초록(#00C853)은 기본 행동의 면 색이며, 그 위 글자는 #111111(8.4:1)을 쓴다. 흰 배경 위 초록 글자·링크는 #007A35(5.5:1)를 쓴다(흰 글자 on #00C853은 2.24:1로 금지), 노랑은 경계, 적색은 위험/실패이며 항상 텍스트와 함께 사용한다. 노랑(#FBC02D)·초록(#00C853)은 흰 배경 위 글자 대비가 부족하므로 배경·점·막대에만 쓰고 글자는 --warning-text·--success-text를 쓴다. 글자색은 #111111/#505050/#6B6B6B(회색 배경 위에서도 4.5:1 유지), #999999는 비활성에만 쓴다. 버튼·입력칸 선은 #E5E5EC, 팝업 딤은 #111111 60%.
 
 ## Typography
 Pretendard Variable을 로컬 패키지에서 제공한다. Figma 05. Typography Guide에 따라 Semibold(600)·Medium(500)·Regular(400)만 쓰고 자간은 -2.5%. 본문 13~16px(Body 1~4), 페이지 제목 28px(Headline 4), 섹션 제목 18px(Title). 수치는 tabular-nums. 11~12px(Caption)은 보조 출처에만 사용한다.

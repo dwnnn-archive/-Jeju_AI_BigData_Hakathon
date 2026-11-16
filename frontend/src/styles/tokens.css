@@ -12,7 +12,7 @@
   /* Font colors */
   --text: #111111;
   --text-sub: #505050;
-  --muted: #767676;
+  --muted: #6b6b6b; /* 4.7:1 on #f1f1f5, 5.3:1 on white */
   --disabled: #999999;
 
   /* Line colors */
@@ -39,7 +39,7 @@
 
   /* Status — Figma input state colors. Yellow/green are fills only;
      text on white uses the darker *-text tokens to keep WCAG AA contrast. */
-  --danger: #d32f2f;
+  --danger: #c62828; /* 4.9:1 on --danger-soft, 5.6:1 white-on */
   --danger-hover: #b71c1c;
   --danger-soft: #fdecec;
   --warning-fill: #fbc02d;
