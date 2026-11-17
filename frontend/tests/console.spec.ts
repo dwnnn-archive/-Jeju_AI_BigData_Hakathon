@@ -24,7 +24,9 @@ test("real API: empty → result → review → mock notification, with keyboard
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "계산 완료 · 검토 필요",
   );
-  await expect(page.locator(".recharts-wrapper")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: /시간별 발전량과 수요/ }),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("desktop-result.png"),
     fullPage: true,
@@ -181,7 +183,9 @@ test("mobile result has no document overflow and navigation keeps the selected a
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await analyze(page);
-  await expect(page.locator(".recharts-wrapper")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: /시간별 발전량과 수요/ }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
