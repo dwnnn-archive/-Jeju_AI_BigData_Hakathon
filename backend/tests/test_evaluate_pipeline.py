@@ -61,7 +61,8 @@ def test_magnitude_and_allocation_capacity_summary():
     assert mag["days"] == 3 and mag["mean_predicted_peak_surplus_mwh"] == 120
     assert mag["corr_with_max_hourly"] == pytest.approx(1.0)
     assert out["allocation"]["flagged_days"] == 3
-    assert out["allocation"]["within_capacity_170"] == pytest.approx(2 / 3)
+    assert out["allocation"]["capacity_mwh"] == pytest.approx(137.7)
+    assert out["allocation"]["within_capacity"] == pytest.approx(2 / 3)
 
 
 def test_empty_groups_do_not_divide_by_zero():
@@ -94,3 +95,12 @@ def test_day_weather_needs_all_24_hours_and_fills_cloud_for_three_hours_only():
     gosan = {(d, h): _obs() for h in range(24)}
     del jeju[(d, 7)]  # 수요 모델용 기온이 한 시간이라도 없으면 그 날은 건너뜀
     assert day_weather(d, gosan, jeju) is None
+
+
+def test_allocation_sensitivity_share_within_capacity():
+    from scripts.allocation_sensitivity import share_within
+
+    days = [{"peak_surplus_mwh": 60}, {"peak_surplus_mwh": 120}, {"peak_surplus_mwh": 180}]
+    within, frac, absorbed = share_within(days, lambda d: 100)
+    assert within == 1 and frac == pytest.approx(1 / 3)
+    assert absorbed == pytest.approx((60 + 100 + 100) / 360)

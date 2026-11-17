@@ -22,7 +22,7 @@ from pathlib import Path
 
 from app.core.config import Settings
 from app.domain.rules import allocate, evaluate
-from app.domain.schemas import AnalysisRequest, WeatherHour
+from app.domain.schemas import AnalysisRequest, Capacities, WeatherHour
 from app.tools.bundle import ToolBundle
 from app.tools.jeju_model import sky_from_cloud_tenths
 from scripts.build_training_csv import build, read_asos
@@ -148,10 +148,14 @@ def summarize(days: list[dict]) -> dict:
         "corr_with_daily_total": _pearson(surplus, [d["wind_total_mwh"] for d in wind_days]),
     }
     flagged = [d for d in days if d["risk"] != "NORMAL"]
+    capacity = sum(Capacities().model_dump().values())  # 서비스의 기본 배분 용량 합계(MWh)
     out["allocation"] = {
         "flagged_days": len(flagged),
-        "within_capacity_170": (
-            sum(d["peak_surplus_mwh"] <= 170 for d in flagged) / len(flagged) if flagged else None
+        "capacity_mwh": capacity,
+        "within_capacity": (
+            sum(d["peak_surplus_mwh"] <= capacity for d in flagged) / len(flagged)
+            if flagged
+            else None
         ),
     }
     return out
