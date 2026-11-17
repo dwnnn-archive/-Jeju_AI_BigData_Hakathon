@@ -42,7 +42,7 @@ class AnalysisService:
     def config(run_id):
         return {"configurable": {"thread_id": run_id}, "recursion_limit": 64}
 
-    def create(self, request, run_id=None):
+    def create(self, request, run_id=None, check_no=0):
         request = parse_request(request)
         run_id = run_id or str(uuid4())
         with self.lock:
@@ -53,6 +53,8 @@ class AnalysisService:
                         "id": run_id,
                         "request": request.model_dump(mode="json"),
                         "status": "running",
+                        "phase": request.phase,
+                        "check_no": check_no,
                         "refresh_count": 0,
                         "sources": {},
                         "trace": ["R1:validated"],
@@ -72,7 +74,16 @@ class AnalysisService:
         state = self.graph.get_state(self.config(run_id)).values
         result = {
             key: state.get(key)
-            for key in ("result", "allocation", "draft", "decision", "boundary_unresolved")
+            for key in (
+                "result",
+                "allocation",
+                "draft",
+                "decision",
+                "boundary_unresolved",
+                "phase",
+                "check_no",
+                "intraday",
+            )
         }
         result.update(
             {

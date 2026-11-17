@@ -1,5 +1,4 @@
 [
-  {"id":"demo-wind-total","kind":"wind","capacity_mw":900,"source":"demo"},
-  {"id":"demo-solar-total","kind":"solar","capacity_mw":600,"source":"demo"}
+  {"id":"jeju-wind-total-2024-12","kind":"wind","capacity_mw":374.89,"source":"jeju_facility_2024-12"},
+  {"id":"jeju-solar-total-2024-12","kind":"solar","capacity_mw":553.75,"source":"jeju_facility_2024-12"}
 ]
-

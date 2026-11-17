@@ -6,10 +6,11 @@ import pytest
 
 from app.core.config import Settings
 from app.domain.schemas import AnalysisRequest, WeatherHour
+from app.providers import demo
 from app.providers.kma import KmaProvider, grid_coordinates, issue_time
 from app.providers.kpx import KpxProvider
 from app.tools.bundle import ToolBundle
-from app.tools.tool1_kma_weather import parse_request
+from app.tools.tool1_kma_weather import COORDINATES, GRID, parse_request
 from app.tools.tool2_predict_generation import load_plants, physical_prediction, wind_factor
 
 DAY = date(2026, 11, 14)
@@ -56,27 +57,98 @@ def test_query_resolves_kst_tomorrow_and_region():
         parse_request(AnalysisRequest(query="2026-11-14 한림 조천 분석"))
 
 
-def test_kma_parses_all_hours_and_marks_irradiance_estimated():
-    items = [
+def _kma_client(items, code="00", page_size=None, seen=None):
+    def handler(req):
+        q = req.url.params
+        if seen is not None:
+            seen.append((str(req.url).split("?")[0], dict(q)))
+        size, page = int(q["numOfRows"]), int(q["pageNo"])
+        chunk = items[(page - 1) * size : page * size]
+        return httpx.Response(
+            200,
+            json={
+                "response": {
+                    "header": {"resultCode": code, "resultMsg": "NORMAL_SERVICE"},
+                    "body": {"items": {"item": chunk}, "totalCount": len(items)},
+                }
+            },
+        )
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def _kma_items(wsd="12", tmp="20"):
+    return [
         {"fcstDate": "20261114", "fcstTime": f"{h:02d}00", "category": c, "fcstValue": v}
         for h in range(24)
-        for c, v in [("WSD", "12"), ("TMP", "20"), ("SKY", "1")]
+        for c, v in [("WSD", wsd), ("TMP", tmp), ("SKY", "1")]
     ]
-    client = httpx.Client(
-        transport=httpx.MockTransport(
-            lambda req: httpx.Response(
-                200,
-                json={
-                    "response": {"header": {"resultCode": "00"}, "body": {"items": {"item": items}}}
-                },
-            )
-        )
+
+
+def test_kma_parses_all_hours_and_marks_irradiance_estimated():
+    seen = []
+    rows = KmaProvider("test", _kma_client(_kma_items(), seen=seen)).fetch(
+        DAY, 33.5, 126.5, grid=(53, 38)
     )
-    rows = KmaProvider("test", client).fetch(DAY, 33.5, 126.5)
     assert len(rows) == 24
     assert rows[0].wind_ms == 12
     assert rows[0].irradiance_wm2 == 0
     assert rows[12].irradiance_wm2 > 0
+    url, params = seen[0]
+    assert url == (
+        "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst"
+    )
+    assert params["authKey"] == "test" and "serviceKey" not in params
+    assert (params["nx"], params["ny"], params["dataType"]) == ("53", "38", "JSON")
+
+
+def test_kma_accepts_guide_example_result_code_and_paginates():
+    seen = []
+    client = _kma_client(_kma_items(), code="0", seen=seen)
+    rows = KmaProvider("k", client, page_size=20).fetch(DAY, 33.5, 126.5)
+    assert len(rows) == 24
+    assert len(seen) > 1  # 72 rows / 20 per page
+
+
+def test_kma_service_key_param_and_custom_base_url():
+    seen = []
+    KmaProvider(
+        "k",
+        _kma_client(_kma_items(), seen=seen),
+        base_url="https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/",
+        auth_param="serviceKey",
+    ).fetch(DAY, 33.5, 126.5)
+    url, params = seen[0]
+    assert url.endswith("/VilageFcstInfoService_2.0/getVilageFcst")
+    assert "serviceKey" in params and "authKey" not in params
+
+
+@pytest.mark.parametrize("bad", ["-999", "999", "900"])
+def test_kma_rejects_missing_values(bad):
+    with pytest.raises(ValueError):
+        KmaProvider("k", _kma_client(_kma_items(tmp=bad))).fetch(DAY, 33.5, 126.5)
+
+
+def test_kma_rejects_error_result_code():
+    with pytest.raises(ValueError):
+        KmaProvider("k", _kma_client(_kma_items(), code="03")).fetch(DAY, 33.5, 126.5)
+
+
+def test_kma_extended_days_with_three_hour_steps_are_rejected():
+    items = [
+        {"fcstDate": "20261114", "fcstTime": f"{h:02d}00", "category": c, "fcstValue": v}
+        for h in range(0, 24, 3)
+        for c, v in [("WSD", "2"), ("TMP", "20"), ("SKY", "1")]
+    ]
+    with pytest.raises(ValueError):
+        KmaProvider("k", _kma_client(items)).fetch(DAY, 33.5, 126.5)
+
+
+def test_official_grid_matches_guide_workbook_and_formula():
+    assert grid_coordinates(37.488201, 126.929810) == (59, 125)  # 가이드 C 예제
+    assert GRID == {"jeju": (53, 38), "hallim": (48, 36), "jocheon": (55, 39), "haengwon": (59, 38)}
+    for region in ("jeju", "hallim", "jocheon"):
+        assert grid_coordinates(*COORDINATES[region]) == GRID[region]
 
 
 def test_kpx_contract_rejects_duplicate_hours():
@@ -103,5 +175,20 @@ def test_demo_boundary_refresh_changes_only_demo_forecast():
     bundle = ToolBundle(Settings())
     req = AnalysisRequest(date=DAY, region="jeju", scenario="boundary")
     weather, _ = bundle.weather(req, 0)
-    assert bundle.generation(req, weather, 0)[0][12].mwh == 695
-    assert bundle.generation(req, weather, 1)[0][12].mwh == 730
+    assert bundle.generation(req, weather, 0)[0][12].mwh == 308
+    assert bundle.generation(req, weather, 1)[0][12].mwh == 510
+
+
+def test_bundled_plants_use_real_capacity_and_physical_estimate_stays_simulated():
+    settings = Settings()
+    plants = load_plants(settings.plants_path, settings.corrections_path)
+    wind = sum(p.capacity_mw for p in plants if p.kind == "wind")
+    solar = sum(p.capacity_mw for p in plants if p.kind == "solar")
+    assert (round(wind, 2), round(solar, 2)) == (374.89, 553.75)
+    assert {p.source for p in plants} == {"jeju_facility_2024-12"}
+    request = AnalysisRequest(date=DAY, region="jeju", mode="live")
+    bundle = ToolBundle(Settings(jeju_model_dir=None, model_path=None))
+    rows, source = bundle.generation(request, demo.weather(DAY), 0)
+    assert len(rows) == 24
+    assert source["simulated"] is True and source["validated"] is False
+    assert source["capacity_sources"] == ["jeju_facility_2024-12"]

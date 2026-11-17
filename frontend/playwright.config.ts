@@ -25,6 +25,9 @@ export default defineConfig({
       env: {
         DATABASE_PATH: "/tmp/jeju-playwright.sqlite",
         APPROVER_TOKEN: "local-review-test",
+        // 수집해 둔 실제 충전소 파일이 e2e 결과를 바꾸지 않게 한다.
+        EV_SNAPSHOT_PATH: "/tmp/jeju-playwright-no-ev.json",
+        EV_PROFILE_PATH: "/tmp/jeju-playwright-no-ev-profile.json",
       },
       reuseExistingServer: !process.env.CI,
     },

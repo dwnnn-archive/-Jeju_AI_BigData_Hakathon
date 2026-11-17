@@ -10,6 +10,7 @@ from uuid import UUID
 from filelock import FileLock
 
 from app.domain.schemas import AnalysisRequest, Decision
+from app.providers.kma import KST
 from app.repositories.jobs import JobRepository, iso_now, utcnow
 from app.services.analysis import AnalysisService, ConflictError
 from app.tools.tool1_kma_weather import parse_request
@@ -42,12 +43,48 @@ class JobService:
         key = str(UUID(key))
         request = parse_request(request)
         with self.review_lock:
+            if request.phase == "intraday":
+                self._require_intraday_allowed(request, key)
             try:
                 row = self.jobs.insert(key, request.model_dump(mode="json"))
             except ValueError as exc:
                 raise ConflictError(str(exc)) from exc
         self.wake.set()
         return self._view(row)
+
+    def _require_intraday_allowed(self, request, key):
+        """당일 점검은 당일에, 하루 전이 정상으로 끝난 날에만, 최대 횟수 안에서 접수한다."""
+        try:
+            self.jobs.get(key)
+            return  # 같은 키의 재요청은 기존 접수를 돌려주므로 규칙을 다시 따지지 않는다
+        except KeyError:
+            pass
+        if request.date != datetime.now(KST).date():
+            raise ValueError("Intraday checks are only available for today (KST)")
+        rows = self.jobs.scope_rows(self.jobs.scope_of(request.model_dump(mode="json")))
+        if not rows:
+            raise ConflictError("A day-ahead analysis for this date is required first")
+        if any(r["status"] in ("queued", "running") for r in rows):
+            raise ConflictError("An analysis for this date is still in progress")
+        # 실패·중단된 시도는 건너뛴다. 기상청 장애로 한 번 실패해도
+        # 다음 점검으로 만회할 수 있어야 한다.
+        rows = [r for r in rows if r["status"] not in ("failed", "interrupted")]
+        if not rows:
+            raise ConflictError("A day-ahead analysis for this date is required first")
+        latest = rows[-1]
+        risk = (
+            (json.loads(latest["snapshot_json"]) if latest["snapshot_json"] else {}).get("result")
+            or {}
+        ).get("risk")
+        if latest["status"] != "completed" or risk != "NORMAL":
+            raise ConflictError("Intraday checks only follow a day that was judged NORMAL")
+        done = [
+            r
+            for r in rows
+            if self.jobs.is_intraday(r) and r["status"] not in ("failed", "interrupted")
+        ]
+        if len(done) >= self.settings.max_intraday_checks:
+            raise ConflictError("The intraday check limit for this date has been reached")
 
     def _view(self, row, summary=False):
         snapshot = json.loads(row["snapshot_json"]) if row["snapshot_json"] else {}
@@ -94,6 +131,7 @@ class JobService:
             "can_decide": not blocks,
             "decision_blocks": blocks,
             "operationally_validated": False,
+            "phase": request.get("phase", "day_ahead"),
             "simulation": request["mode"] == "demo",
             "result": snapshot.get("result"),
             "allocation": snapshot.get("allocation"),
@@ -141,8 +179,10 @@ class JobService:
             heartbeat = threading.Thread(target=beat, daemon=True)
             heartbeat.start()
             try:
-                request = AnalysisRequest.model_validate_json(self.jobs.get(run_id)["request_json"])
-                snapshot = self.engine.create(request, run_id=run_id)
+                row = self.jobs.get(run_id)
+                request = AnalysisRequest.model_validate_json(row["request_json"])
+                check_no = self.jobs.intraday_rank(row) if request.phase == "intraday" else 0
+                snapshot = self.engine.create(request, run_id=run_id, check_no=check_no)
             except sqlite3.OperationalError:
                 raise
             except Exception:

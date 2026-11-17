@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AnalysisRun, Transport } from "../features/analysis/types";
-import { labels } from "../features/analysis/state";
+import { labels, phaseLabel } from "../features/analysis/state";
 import { DateField } from "../components/DateField";
 import {
   FlowChart,
@@ -154,20 +154,30 @@ function AfterView({
           <span>{longDate(run.request.date)} · 제주 전역</span>
           <span>{run.simulation ? "시연 분석" : "외부 데이터 · 검증 전"}</span>
           <span>{labels[run.status]}</span>
+          <span>
+            {phaseLabel(run.phase ?? run.request.phase, run.check_no)}
+          </span>
         </p>
         <h1 id="dv-after-title" className="dv-hero">
-          {span ? "내일의 잉여전력." : "내일의 전력 흐름."}
+          {span ? "예측된 잉여전력." : "예측된 전력 흐름."}
           <br />
           {span ? "대응은 오늘." : "여유는 충분합니다."}
         </h1>
         <p className="dv-lead">
           {span
             ? `${span[0]}시부터 ${span[1]}시까지 잉여전력이 예상됩니다.`
-            : "발전량이 수요를 넘는 시간이 예상되지 않습니다."}
+            : "발전량이 대응 기준을 넘는 시간이 예상되지 않습니다."}
           <br />
           {allocation
             ? `자원 배분으로 피크 1시간 잉여량의 ${fmt(allocation.absorption_pct)}%를 흡수할 수 있습니다.`
             : "위험 기준 미만이라 자원 배분이 필요하지 않습니다."}
+        </p>
+        <p className="dv-caption">
+          잉여전력은 수요의 {(result.thresholds.warning_ratio * 100).toFixed(0)}
+          %를 초과하는 발전량입니다.
+          {result.from_hour != null
+            ? ` ${result.from_hour}시 이후 구간을 판정했습니다.`
+            : ""}
         </p>
         {stale && (
           <p className="notice notice--warning">
@@ -218,7 +228,10 @@ function AfterView({
             <span className="dv-legend-dem">수요 · 점선</span>
           </div>
         </div>
-        <FlowChart hourly={result.hourly} />
+        <FlowChart
+          hourly={result.hourly}
+          warningRatio={result.thresholds.warning_ratio}
+        />
         <p className="dv-caption">
           {run.simulation
             ? "시연 데이터 기준 · 실제 예측값이 아닙니다."

@@ -1,5 +1,5 @@
 import type { AnalysisSummary } from "../analysis/types";
-import { labels } from "../analysis/state";
+import { labels, phaseLabel } from "../analysis/state";
 import { regions } from "../analysis/AnalysisForm";
 import { longDate } from "../analysis/FlowChart";
 
@@ -64,7 +64,8 @@ export function HistoryPanel({
                 <strong>{longDate(item.request.date)}</strong>
                 <span>
                   {regions[item.request.region]} ·{" "}
-                  {item.simulation ? "시연" : "외부 · 검증 전"} · 접수{" "}
+                  {phaseLabel(item.phase ?? item.request.phase, item.check_no)}{" "}
+                  · {item.simulation ? "시연" : "외부 · 검증 전"} · 접수{" "}
                   {timeFormat.format(new Date(item.created_at))}
                 </span>
               </div>

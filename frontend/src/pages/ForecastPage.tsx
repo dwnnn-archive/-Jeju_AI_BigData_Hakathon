@@ -1,5 +1,5 @@
 import type { AnalysisRun } from "../features/analysis/types";
-import { labels } from "../features/analysis/state";
+import { labels, phaseLabel } from "../features/analysis/state";
 import {
   FlowChart,
   RiskStrip,
@@ -40,6 +40,14 @@ export function ForecastPage({
   const peak = `${pad(result.peak_hour)}:00–${pad((result.peak_hour + 1) % 24)}:00`;
   return (
     <>
+      <p className="dv-caption">
+        {phaseLabel(run.phase ?? run.request.phase, run.check_no)}
+        {result.from_hour != null ? ` · ${result.from_hour}시 이후 판정` : ""}
+        {` · 발전량/수요 최대 비율 ${(result.peak_ratio * 100).toFixed(0)}% (경계 ${(result.thresholds.warning_ratio * 100).toFixed(0)}% · 위험 ${(result.thresholds.critical_ratio * 100).toFixed(0)}%)`}
+        <br />
+        잉여전력은 수요의 {(result.thresholds.warning_ratio * 100).toFixed(0)}
+        %를 초과하는 발전량입니다.
+      </p>
       <dl className="dv-kpis ed-kpis">
         <div>
           <dt>피크 잉여전력 · {riskLabel[result.risk]}</dt>
@@ -75,7 +83,10 @@ export function ForecastPage({
             <span className="dv-legend-dem">수요 · 점선</span>
           </div>
         </div>
-        <FlowChart hourly={result.hourly} />
+        <FlowChart
+          hourly={result.hourly}
+          warningRatio={result.thresholds.warning_ratio}
+        />
         <h3 className="ed-subhead">24시간 위험 띠</h3>
         <RiskStrip hourly={result.hourly} />
         <p className="dv-caption">

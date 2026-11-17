@@ -1,7 +1,10 @@
 {
-  "normal": {"peak_surplus_mwh": [100]},
-  "critical": {"peak_surplus_mwh": [230]},
-  "boundary": {"peak_surplus_mwh": [195, 230]},
-  "boundary_stable": {"peak_surplus_mwh": [195, 195, 195, 195]}
+  "normal": {"peak_generation_mwh": [210]},
+  "critical": {"peak_generation_mwh": [510]},
+  "boundary": {"peak_generation_mwh": [308, 510]},
+  "boundary_stable": {"peak_generation_mwh": [308, 308, 308, 308]},
+  "intraday_escalation": {
+    "peak_generation_mwh": [210],
+    "intraday_peak_generation_mwh": [210, 510]
+  }
 }
-

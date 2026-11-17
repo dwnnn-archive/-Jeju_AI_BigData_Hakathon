@@ -18,3 +18,27 @@ it.each([
     false,
   );
 });
+
+it("accepts the intraday phase, its check number and the from_hour of the result", () => {
+  const run = runFixture();
+  const parsed = runSchema.safeParse({
+    ...run,
+    status: "completed",
+    can_decide: false,
+    decision_blocks: ["not_awaiting_approval"],
+    phase: "intraday",
+    check_no: 2,
+    request: {
+      ...run.request,
+      scenario: "intraday_escalation",
+      phase: "intraday",
+    },
+    result: { ...run.result!, from_hour: 7 },
+  });
+  expect(parsed.success).toBe(true);
+  expect(parsed.success && parsed.data.check_no).toBe(2);
+});
+
+it("still accepts runs from before the phase field existed", () => {
+  expect(runSchema.safeParse(runFixture()).success).toBe(true);
+});

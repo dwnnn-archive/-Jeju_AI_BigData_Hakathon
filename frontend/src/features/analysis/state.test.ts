@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acceptSnapshot, statusLabel, canReview } from "./state";
+import { acceptSnapshot, statusLabel, canReview, phaseLabel } from "./state";
 import { runFixture } from "../../test/fixtures";
 
 describe("confirmed state only", () => {
@@ -34,4 +34,11 @@ describe("confirmed state only", () => {
       canReview(runFixture({ can_decide: false }), "confirmed", true),
     ).toBe(false);
   });
+});
+
+it("labels the decision phase for day-ahead and intraday checks", () => {
+  expect(phaseLabel(undefined)).toBe("하루 전 계획");
+  expect(phaseLabel("day_ahead", 0)).toBe("하루 전 계획");
+  expect(phaseLabel("intraday", 1)).toBe("당일 1차 점검");
+  expect(phaseLabel("intraday")).toBe("당일 점검");
 });

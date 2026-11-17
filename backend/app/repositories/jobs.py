@@ -61,6 +61,34 @@ class JobRepository:
             )
         return self.get(run_id)
 
+    @staticmethod
+    def scope_of(request):
+        return "|".join((request["date"], request["region"], request["mode"]))
+
+    def scope_rows(self, scope):
+        """같은 날짜·지역·모드의 작업을 접수 순서대로."""
+        with self.connection() as conn:
+            return [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT * FROM jobs WHERE scope=? ORDER BY sequence", (scope,)
+                )
+            ]
+
+    @staticmethod
+    def is_intraday(row):
+        return json.loads(row["request_json"]).get("phase") == "intraday"
+
+    def intraday_rank(self, row):
+        """이 작업이 그날 몇 번째 당일 점검인가(실패·중단된 시도는 세지 않는다)."""
+        return sum(
+            1
+            for r in self.scope_rows(row["scope"])
+            if r["sequence"] <= row["sequence"]
+            and self.is_intraday(r)
+            and r["status"] not in ("failed", "interrupted")
+        )
+
     def get(self, run_id):
         with self.connection() as conn:
             row = conn.execute("SELECT * FROM jobs WHERE id=?", (run_id,)).fetchone()
