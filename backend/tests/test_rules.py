@@ -77,15 +77,17 @@ def test_deficit_is_not_negative_surplus():
 
 def test_peak_allocation_conserves_energy_and_reports_residual():
     result = allocate(230)
-    assert result["allocated_mwh"] == {"bess": 70, "vpp": 30, "p2x": 30, "ev": 40}
-    assert result["absorbed_mwh"] == 170
-    assert result["residual_mwh"] == 60
-    assert result["absorption_pct"] == pytest.approx(170 / 230 * 100)
+    assert result["allocated_mwh"] == {"bess": 37.7, "vpp": 30, "p2x": 30, "ev": 40}
+    assert result["absorbed_mwh"] == pytest.approx(137.7)
+    assert result["residual_mwh"] == pytest.approx(92.3)
+    assert result["absorbed_mwh"] + result["residual_mwh"] == pytest.approx(230)
+    assert result["absorption_pct"] == pytest.approx(137.7 / 230 * 100)
     assert result["hydrogen_kg"] == 390
 
 
 def test_priority_and_zero_allocation():
-    assert allocate(80)["allocated_mwh"] == {"bess": 70, "vpp": 10, "p2x": 0, "ev": 0}
+    assigned = allocate(80)["allocated_mwh"]
+    assert assigned == pytest.approx({"bess": 37.7, "vpp": 30, "p2x": 12.3, "ev": 0})
     assert allocate(0)["absorption_pct"] == 0
 
 
@@ -114,3 +116,11 @@ def test_unknown_input_fields_and_bad_coordinates_cannot_silently_pass():
         AnalysisRequest(date=DAY, region="seoul")
     with pytest.raises(ValidationError):
         AnalysisRequest(date=DAY, forced_surplus=999)
+
+
+def test_notification_prints_allocation_without_long_decimals():
+    from app.tools.tool6_notification import _allocated_line
+
+    line = _allocated_line({"bess": 37.7, "vpp": 30, "p2x": 30.0, "ev": 108.99402234045442})
+    assert line == "BESS 37.7 / VPP 30 / P2X 30 / EV 109"
+    assert _allocated_line({"bess": 0.0, "ev": 12.34}) == "BESS 0 / EV 12.3"

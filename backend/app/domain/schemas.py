@@ -39,7 +39,7 @@ class WeatherHour(StrictModel):
 
 
 class Capacities(StrictModel):
-    bess: NonNegative = 70
+    bess: NonNegative = 37.7  # 제주 ESS 계량 실적의 시간당 최대 충전량(2024-01~2025-12)
     vpp: NonNegative = 30
     p2x: NonNegative = 30
     ev: NonNegative = 40

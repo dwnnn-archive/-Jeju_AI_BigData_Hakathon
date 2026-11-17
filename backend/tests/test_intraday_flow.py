@@ -80,7 +80,7 @@ def test_day_ahead_normal_then_two_intraday_checks_then_approval(client):
     second = run(client, demo_body("intraday"))
     assert second["check_no"] == 2 and second["result"]["risk"] == "CRITICAL"
     assert second["status"] == "awaiting_approval" and second["can_decide"] is True
-    assert second["allocation"]["absorbed_mwh"] == 170  # 하루 전과 같은 배분 규칙
+    assert second["allocation"]["absorbed_mwh"] == pytest.approx(137.7)  # 하루 전과 같은 배분 규칙
     assert second["sources"]["generation"]["source"] == "demo_scenario"
 
     approved = decide(client, second)

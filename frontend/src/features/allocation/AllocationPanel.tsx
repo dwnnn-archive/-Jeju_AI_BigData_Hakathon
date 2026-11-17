@@ -9,6 +9,9 @@ const resources = [
   { key: "ev", name: "스마트 충전", detail: "EV", icon: CarFront },
 ] as const;
 
+/** 소수 첫째 자리까지만 보여 준다(108.99402234045442 같은 긴 값 방지). 정수면 소수점 없이. */
+const mwh = (value: number) => String(Number(value.toFixed(1)));
+
 export function AllocationPanel({ run }: { run: AnalysisRun | null }) {
   if (!run?.allocation)
     return (
@@ -41,8 +44,8 @@ export function AllocationPanel({ run }: { run: AnalysisRun | null }) {
             </div>
             <h3>{name}</h3>
             <div className="resource-value">
-              {allocation.allocated_mwh[key].toFixed(0)}
-              <span> / {allocation.capacities_mwh[key]} MWh</span>
+              {mwh(allocation.allocated_mwh[key])}
+              <span> / {mwh(allocation.capacities_mwh[key])} MWh</span>
             </div>
             <meter
               min={0}
