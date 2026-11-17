@@ -188,7 +188,7 @@ npm run test:e2e
 - [상태·승인 실행 계약](docs/architecture/execution-contract.md)
 - [데이터 연동·기존 회귀 모델 계약](docs/guides/data-contracts.md)
 - [파이프라인 점검(과거 날짜 vs 실제 출력제한일)](docs/guides/pipeline-evaluation.md)
-- [당일 점검(초단기예보, 시험 브랜치)](docs/guides/intraday-check.md)
+- [당일 점검(초단기예보)](docs/guides/intraday-check.md)
 - [예보 저장 장치(ML 개선용 이력)](docs/guides/forecast-archive.md)
 - [허브 일별 기상 교차검증](docs/guides/hub-weather-check.md)
 - [검증 기록](docs/verification/current.md)
