@@ -7,6 +7,8 @@ from app.domain.rules import evaluate
 from app.providers import demo
 from app.providers.kma import KST, KmaProvider
 from app.providers.kma_nowcast import KmaNowcastProvider
+from app.providers.jejuhub_ev import ev_capacity, load_snapshot
+from app.providers.jejuhub_ev_history import load_profile
 from app.providers.kpx import KpxProvider
 from app.repositories.forecasts import ForecastArchive
 from app.tools.demand_model import JEJU_CITY_GRID, DemandModel
@@ -262,3 +264,20 @@ class ToolBundle:
                 "demand_weather": [w.model_dump(mode="json") for w in dem_weather],
             },
         }
+
+    def ev_allocation_input(self, hour: int, target_date=None):
+        """피크 시각의 EV 흡수 용량. 허브 충전소 목록이 없으면 None(기존 시연값 유지)."""
+        loaded = load_snapshot(self.settings.ev_snapshot_path)
+        if loaded is None:
+            return None
+        stations, fetched_at = loaded
+        detail = ev_capacity(
+            stations,
+            hour,
+            slow_kw=self.settings.ev_slow_kw,
+            fast_kw=self.settings.ev_fast_kw,
+            idle_ratio=self.settings.ev_idle_ratio,
+            profile=load_profile(self.settings.ev_profile_path),
+            target_date=target_date,
+        )
+        return {**detail, "fetched_at": fetched_at}

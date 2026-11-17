@@ -16,3 +16,10 @@ def _archive_off_by_default(monkeypatch):
     저장 장치를 시험하는 테스트가 직접 켠다.
     """
     monkeypatch.setenv("FORECAST_ARCHIVE_ENABLED", "false")
+
+
+@pytest.fixture(autouse=True)
+def _no_local_ev_snapshot(monkeypatch, tmp_path):
+    """수집해 둔 실제 충전소 파일(runtime/ev_stations.json)이 배분 결과를 바꾸지 않게 격리한다."""
+    monkeypatch.setenv("EV_SNAPSHOT_PATH", str(tmp_path / "no-ev-snapshot.json"))
+    monkeypatch.setenv("EV_PROFILE_PATH", str(tmp_path / "no-ev-profile.json"))

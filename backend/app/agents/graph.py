@@ -1,13 +1,15 @@
+from datetime import date
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from app.agents.state import AgentState
 from app.domain.rules import is_boundary
-from app.domain.schemas import AnalysisRequest, EnergyHour, WeatherHour
+from app.domain.schemas import AnalysisRequest, Capacities, EnergyHour, WeatherHour
 from app.providers import demo
 from app.tools.tool4_risk import evaluate
 from app.tools.tool5_allocation import allocate
-from app.tools.tool6_notification import draft_notification
+from app.tools.tool6_llm import draft_with_llm
 
 
 def build_graph(bundle, store, saver, max_refreshes):
@@ -147,16 +149,32 @@ def build_graph(bundle, store, saver, max_refreshes):
         }
 
     def allocation(state):
-        return {
-            "allocation": allocate(state["result"]["peak_surplus_mwh"]),
-            "trace": state["trace"] + ["R6:allocation"],
-        }
+        result = state["result"]
+        ev = bundle.ev_allocation_input(result["peak_hour"], date.fromisoformat(result["date"]))
+        plan = allocate(
+            result["peak_surplus_mwh"], Capacities(ev=ev["capacity_mwh"]) if ev else None
+        )
+        if ev:
+            # EV 용량만 허브 데이터 기반이다. 나머지 자원은 여전히 가정이다.
+            plan["availability_source"] = (
+                "jejudatahub_ev_stations+history"
+                if ev["basis"] == "history_profile"
+                else "jejudatahub_ev_stations+assumptions"
+            )
+            plan["ev_basis"] = ev
+        return {"allocation": plan, "trace": state["trace"] + ["R6:allocation"]}
 
     def draft(state):
+        cfg = bundle.settings
+        key = cfg.anthropic_api_key.get_secret_value() if cfg.anthropic_api_key else None
+        text, source = draft_with_llm(
+            state["result"], state["allocation"],
+            api_key=key, model=cfg.llm_model, timeout=cfg.llm_timeout,
+        )
         return {
-            "draft": draft_notification(state["result"], state["allocation"]),
+            "draft": text,
             "status": "awaiting_approval",
-            "trace": state["trace"] + ["R7:draft"],
+            "trace": state["trace"] + [f"R7:draft:{source}"],
         }
 
     def approval(state):
