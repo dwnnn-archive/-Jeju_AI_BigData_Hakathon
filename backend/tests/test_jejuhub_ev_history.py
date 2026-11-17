@@ -212,3 +212,12 @@ def test_history_script_refuses_too_many_new_months(tmp_path, monkeypatch):
     monkeypatch.setenv("JEJUHUB_PROJECT_KEY", "K")
     monkeypatch.setenv("EV_PROFILE_PATH", str(tmp_path / "ev_profile.json"))
     assert c.main(["202101", "202102", "202103", "202104"]) == 2
+
+
+def test_same_charger_number_at_different_stations_counts_as_separate_chargers():
+    from app.providers.jejuhub_ev_history import charger_key
+
+    a = {"evChargingStationId": "S1", "evChargerId": "1"}
+    b = {"evChargingStationId": "S2", "evChargerId": "1"}
+    assert charger_key(a) != charger_key(b)
+    assert charger_key(a) == charger_key({**a, "chargingCount": 5})

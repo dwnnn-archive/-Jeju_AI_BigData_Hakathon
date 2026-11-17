@@ -123,7 +123,8 @@ class ToolBundle:
         solar = sum(p.capacity_mw for p in plants if p.kind == "solar")
         source = {
             "source": "prediction",
-            "simulated": any(p.source == "demo" for p in plants),
+            # 설비 용량이 실제 값이어도 모델 없이 계산한 물리 추정은 시연(추정)으로 표시한다.
+            "simulated": any(p.source == "demo" for p in plants) or not self.settings.model_path,
             "model": "xgboost" if self.settings.model_path else "physical_estimate",
             "capacity_sources": sorted({p.source for p in plants}),
             "validated": False,

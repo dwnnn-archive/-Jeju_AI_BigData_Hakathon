@@ -6,6 +6,7 @@ import pytest
 
 from app.core.config import Settings
 from app.domain.schemas import AnalysisRequest, WeatherHour
+from app.providers import demo
 from app.providers.kma import KmaProvider, grid_coordinates, issue_time
 from app.providers.kpx import KpxProvider
 from app.tools.bundle import ToolBundle
@@ -176,3 +177,19 @@ def test_demo_boundary_refresh_changes_only_demo_forecast():
     weather, _ = bundle.weather(req, 0)
     assert bundle.generation(req, weather, 0)[0][12].mwh == 308
     assert bundle.generation(req, weather, 1)[0][12].mwh == 510
+
+
+def test_bundled_plants_use_real_capacity_and_physical_estimate_stays_simulated():
+    settings = Settings()
+    plants = load_plants(settings.plants_path, settings.corrections_path)
+    wind = sum(p.capacity_mw for p in plants if p.kind == "wind")
+    solar = sum(p.capacity_mw for p in plants if p.kind == "solar")
+    assert (round(wind, 2), round(solar, 2)) == (374.89, 553.75)
+    assert {p.source for p in plants} == {"jeju_facility_2024-12"}
+    request = AnalysisRequest(date=DAY, region="jeju", mode="live")
+    bundle = ToolBundle(Settings(jeju_model_dir=None, model_path=None))
+    rows, source = bundle.generation(request, demo.weather(DAY), 0)
+    assert len(rows) == 24
+    assert source["simulated"] is True and source["validated"] is False
+    assert source["capacity_sources"] == ["jeju_facility_2024-12"]
+

@@ -70,6 +70,11 @@ def hours_of(raw) -> float | None:
     return h + m / 60 + s / 3600 if min(h, m, s) >= 0 else None
 
 
+def charger_key(row: dict) -> str:
+    """충전기 1기를 구분하는 키. evChargerId는 충전소 안의 번호(1, 2, ...)라 충전소 ID와 함께 써야 한다."""
+    return f"{row.get('evChargingStationId', '')}/{row.get('evChargerId')}"
+
+
 def group_of(category) -> str:
     """완속은 slow, 나머지(급속 계열 전부)는 fast."""
     return "slow" if str(category).strip() == "완속" else "fast"
@@ -116,7 +121,7 @@ def build_profile(monthly: list[dict], weekday: list[dict]) -> dict:
             continue
         g = groups[group_of(r.get("evChargerCategory"))]
         months.add(month)
-        g["by_month"].setdefault(month, set()).add(str(r.get("evChargerId")))
+        g["by_month"].setdefault(month, set()).add(charger_key(r))
         g["kwh"] += kwh
         g["hours"] += t
         for h, hrs in spread_busy_hours(hour, t / n).items():
