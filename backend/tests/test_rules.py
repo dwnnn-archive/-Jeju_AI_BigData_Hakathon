@@ -77,17 +77,17 @@ def test_deficit_is_not_negative_surplus():
 
 def test_peak_allocation_conserves_energy_and_reports_residual():
     result = allocate(230)
-    assert result["allocated_mwh"] == {"bess": 37.7, "vpp": 30, "p2x": 30, "ev": 40}
-    assert result["absorbed_mwh"] == pytest.approx(137.7)
-    assert result["residual_mwh"] == pytest.approx(92.3)
+    assert result["allocated_mwh"] == pytest.approx({"bess": 37.7, "vpp": 30, "p2x": 3.3, "ev": 40})
+    assert result["absorbed_mwh"] == pytest.approx(111.0)
+    assert result["residual_mwh"] == pytest.approx(119.0)
     assert result["absorbed_mwh"] + result["residual_mwh"] == pytest.approx(230)
-    assert result["absorption_pct"] == pytest.approx(137.7 / 230 * 100)
-    assert result["hydrogen_kg"] == 390
+    assert result["absorption_pct"] == pytest.approx(111.0 / 230 * 100)
+    assert result["hydrogen_kg"] == pytest.approx(42.9)
 
 
 def test_priority_and_zero_allocation():
     assigned = allocate(80)["allocated_mwh"]
-    assert assigned == pytest.approx({"bess": 37.7, "vpp": 30, "p2x": 12.3, "ev": 0})
+    assert assigned == pytest.approx({"bess": 37.7, "vpp": 30, "p2x": 3.3, "ev": 9.0})
     assert allocate(0)["absorption_pct"] == 0
 
 

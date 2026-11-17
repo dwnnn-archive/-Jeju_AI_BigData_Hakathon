@@ -44,7 +44,7 @@ def test_critical_waits_for_approval_and_sends_only_after_authenticated_decision
     run = create(client)
     assert run["status"] == "awaiting_approval"
     assert run["result"]["peak_surplus_mwh"] == 230
-    assert run["allocation"]["hydrogen_kg"] == 390
+    assert run["allocation"]["hydrogen_kg"] == pytest.approx(42.9)  # P2X 3.3 MWh x 13 kg/MWh
     assert run["notification"] is None
     assert decide(client, run["id"], headers={}).status_code == 401
     assert (
@@ -228,7 +228,7 @@ def test_query_and_grounded_chat_cannot_approve(client):
     answer = client.post(
         f"/api/v1/analyses/{run['id']}/chat", json={"message": "수소 생산량?"}
     ).json()
-    assert "390" in answer["answer"]
+    assert "42.90" in answer["answer"]
 
 
 def test_invalid_and_unknown_requests_have_defined_errors(client):

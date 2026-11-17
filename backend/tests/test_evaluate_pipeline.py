@@ -61,8 +61,8 @@ def test_magnitude_and_allocation_capacity_summary():
     assert mag["days"] == 3 and mag["mean_predicted_peak_surplus_mwh"] == 120
     assert mag["corr_with_max_hourly"] == pytest.approx(1.0)
     assert out["allocation"]["flagged_days"] == 3
-    assert out["allocation"]["capacity_mwh"] == pytest.approx(137.7)
-    assert out["allocation"]["within_capacity"] == pytest.approx(2 / 3)
+    assert out["allocation"]["capacity_mwh"] == pytest.approx(111.0)
+    assert out["allocation"]["within_capacity"] == pytest.approx(1 / 3)  # 60만 111 이내
 
 
 def test_empty_groups_do_not_divide_by_zero():

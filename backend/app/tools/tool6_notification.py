@@ -13,7 +13,7 @@ def _mwh(value: float) -> str:
 
 
 def _allocated_line(allocated: dict) -> str:
-    """배분량을 'BESS 37.7 / VPP 30 / P2X 30 / EV 109' 모양으로 쓴다(긴 소수점 없이)."""
+    """배분량을 'BESS 37.7 / VPP 30 / P2X 3.3 / EV 109' 모양으로 쓴다(긴 소수점 없이)."""
     return " / ".join(f"{name.upper()} {_mwh(float(value))}" for name, value in allocated.items())
 
 
