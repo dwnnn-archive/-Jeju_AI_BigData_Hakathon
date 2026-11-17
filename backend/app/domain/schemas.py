@@ -61,6 +61,10 @@ class ReviewDecision(Decision):
     result_token: str = Field(min_length=64, max_length=64)
 
 
+class LoginCheck(StrictModel):
+    approver_id: str = Field(min_length=1, max_length=100)
+
+
 class DispatchRequest(StrictModel):
     result_token: str = Field(min_length=64, max_length=64)
 

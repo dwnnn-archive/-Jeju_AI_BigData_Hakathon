@@ -1,0 +1,160 @@
+/* Date field with a calendar popover anchored to the field's bottom-right */
+.datefield {
+  position: relative;
+  width: 100%;
+}
+.datefield input[type="date"] {
+  width: 100%;
+  padding-right: 56px !important;
+}
+.datefield input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.datefield-trigger {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.datefield-trigger:hover:not(:disabled),
+.datefield-trigger[aria-expanded="true"] {
+  background: var(--bg-sub);
+}
+.datefield-trigger:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+}
+.datefield-trigger:focus-visible,
+.datefield-pop button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.datefield-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  padding: 18px;
+  border: 0.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow:
+    0 12px 40px rgb(0 0 0 / 14%),
+    0 2px 8px rgb(0 0 0 / 6%);
+  animation: datefield-in 140ms ease-out;
+}
+@keyframes datefield-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+.datefield-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.datefield-head strong {
+  font-size: 17px;
+  font-weight: var(--weight-semibold);
+}
+.datefield-head div {
+  display: flex;
+  gap: 4px;
+}
+.datefield-head button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--primary-ink);
+  cursor: pointer;
+}
+.datefield-head button:hover {
+  background: var(--bg-sub);
+}
+.datefield-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.datefield-wd {
+  padding: 6px 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+.datefield-day {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  cursor: pointer;
+}
+.is-sun {
+  color: var(--danger);
+}
+.datefield-day:hover {
+  background: var(--bg-sub);
+}
+.datefield-day.is-today {
+  color: var(--primary-ink);
+  font-weight: var(--weight-semibold);
+}
+.datefield-day.is-selected,
+.datefield-day.is-selected:hover {
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: var(--weight-semibold);
+}
+.datefield-quick {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+}
+.datefield-quick button {
+  flex: 1;
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bg-sub);
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.datefield-quick button:hover {
+  background: var(--border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .datefield-pop {
+    animation: none;
+  }
+}
+.dv-field .datefield {
+  width: 300px;
+  max-width: 100%;
+}

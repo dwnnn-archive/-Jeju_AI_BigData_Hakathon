@@ -1,12 +1,27 @@
+import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from app.core.auth import require_api_key, require_approver
-from app.domain.schemas import AnalysisRequest, ChatRequest, DispatchRequest, ReviewDecision
+from app.domain.schemas import (
+    AnalysisRequest,
+    ChatRequest,
+    DispatchRequest,
+    LoginCheck,
+    ReviewDecision,
+)
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_api_key)])
 Officer = Annotated[str, Depends(require_approver)]
+
+
+@router.post("/auth/check")
+def check_login(body: LoginCheck, actor: Officer):
+    """Verify an officer ID + approval token pair without recording any decision."""
+    if not secrets.compare_digest(body.approver_id.encode("utf-8"), actor.encode("utf-8")):
+        raise HTTPException(401, "Valid officer ID and X-Approver-Token required")
+    return {"approver_id": actor}
 
 
 @router.post("/analyses", status_code=202)

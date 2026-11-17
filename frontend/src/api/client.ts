@@ -74,6 +74,36 @@ export function createApi(key: string) {
           body: JSON.stringify(body),
         }),
       ),
+    checkLogin: async (approverId: string, token: string) => {
+      try {
+        const data = await request(
+          "/auth/check",
+          {
+            method: "POST",
+            body: JSON.stringify({ approver_id: approverId }),
+          },
+          token,
+        );
+        return z.object({ approver_id: z.string() }).parse(data).approver_id;
+      } catch (cause) {
+        if (cause instanceof ApiError && cause.status === 401)
+          throw new ApiError(
+            "담당자 ID 또는 인증 토큰이 올바르지 않습니다.",
+            401,
+          );
+        if (cause instanceof ApiError && cause.status === 503)
+          throw new ApiError(
+            "서버에 승인 토큰(APPROVER_TOKEN)이 설정되지 않아 로그인할 수 없습니다.",
+            503,
+          );
+        if (cause instanceof ApiError && cause.status === 404)
+          throw new ApiError(
+            "서버가 로그인 확인을 지원하지 않습니다. 백엔드를 최신 코드로 다시 실행하세요.",
+            404,
+          );
+        throw cause;
+      }
+    },
     list: async () =>
       z.array(summarySchema).parse(await request("/analyses?limit=30")),
     decide: async (

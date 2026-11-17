@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ShieldCheck, FileCheck2, Send } from "lucide-react";
+import { ShieldCheck, Send } from "lucide-react";
+import { DraftView } from "./DraftView";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { blockLabels, canReview } from "../analysis/state";
@@ -17,6 +18,9 @@ type Props = {
     token: string,
     approver: string,
   ) => Promise<void>;
+  /** Logged-in officer; when present the modal reuses its token. */
+  session?: { approverId: string; token: string } | null;
+  onLogin?: () => void;
 };
 export function ApprovalPanel({
   run,
@@ -25,10 +29,13 @@ export function ApprovalPanel({
   busy,
   reviewExpired = false,
   onDecide,
+  session = null,
+  onLogin,
 }: Props) {
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
   const [reason, setReason] = useState("");
-  const [approver, setApprover] = useState("");
+  const [typedApprover, setApprover] = useState("");
+  const approver = session?.token ?? typedApprover;
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState("");
   const [reviewed, setReviewed] = useState<AnalysisRun | null>(null);
@@ -115,13 +122,7 @@ export function ApprovalPanel({
         </div>
       </div>
       {run?.draft ? (
-        <div className="draft">
-          <div>
-            <FileCheck2 size={16} />
-            통보문 초안
-          </div>
-          <pre>{run.draft}</pre>
-        </div>
+        <DraftView run={run} />
       ) : (
         <div className="draft-empty">검토할 초안이 아직 없습니다.</div>
       )}
@@ -233,16 +234,35 @@ export function ApprovalPanel({
                 aria-describedby="review-help"
               />
             </div>
-            <div className="field">
-              <label htmlFor="approver">담당자 인증 토큰</label>
-              <input
-                id="approver"
-                type="password"
-                value={approver}
-                autoComplete="off"
-                onChange={(event) => setApprover(event.target.value)}
-              />
-            </div>
+            {session ? (
+              <p className="notice">
+                <strong>{session.approverId}</strong> 담당자로 로그인되어 있어
+                로그인한 인증 토큰으로 결정을 기록합니다.
+              </p>
+            ) : (
+              <div className="field">
+                <label htmlFor="approver">담당자 인증 토큰</label>
+                <input
+                  id="approver"
+                  type="password"
+                  value={approver}
+                  autoComplete="off"
+                  onChange={(event) => setApprover(event.target.value)}
+                />
+                {onLogin && (
+                  <button
+                    type="button"
+                    className="login-link"
+                    onClick={() => {
+                      setAction(null);
+                      onLogin();
+                    }}
+                  >
+                    로그인하면 토큰을 매번 입력하지 않아도 됩니다
+                  </button>
+                )}
+              </div>
+            )}
             <label className="checkbox">
               <input
                 type="checkbox"

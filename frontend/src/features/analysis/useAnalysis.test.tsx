@@ -14,7 +14,13 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 function apiMock(): Api {
-  return { get: vi.fn(), submit: vi.fn(), decide: vi.fn(), list: vi.fn() };
+  return {
+    get: vi.fn(),
+    submit: vi.fn(),
+    decide: vi.fn(),
+    list: vi.fn(),
+    checkLogin: vi.fn(),
+  };
 }
 function visibility(hidden: boolean) {
   Object.defineProperty(document, "hidden", {

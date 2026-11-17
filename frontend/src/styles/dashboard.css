@@ -1,0 +1,438 @@
+/* Dashboard — 분석 전 / 분석 후 탭 (editorial layout). Previous: dashboard_ver2.css */
+.dv {
+  --dv-ink: #1f1f1f;
+  --dv-line: #d9d9de;
+  --dv-chart: #1f6b45;
+  --dv-chart-fill: rgb(31 107 69 / 14%);
+  max-width: 1180px;
+  margin: 0 auto var(--space-48);
+  color: var(--dv-ink);
+}
+
+/* Tabs */
+.dv-tabs {
+  display: flex;
+  gap: var(--space-28);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-48);
+}
+.dv-tab {
+  position: relative;
+  padding: var(--space-12) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-body-1);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  cursor: pointer;
+}
+.dv-tab[aria-selected="true"] {
+  color: var(--dv-ink);
+}
+.dv-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--dv-ink);
+}
+.dv-tab:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Shared hero */
+.dv-section {
+  padding: var(--space-16) 0 var(--space-48);
+}
+.dv-eyebrow,
+.dv-meta {
+  font-size: var(--font-body-2);
+  color: var(--text-sub);
+  margin-bottom: var(--space-28);
+}
+.dv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+}
+.dv-meta span + span {
+  padding-left: var(--space-16);
+  border-left: 1px solid var(--dv-line);
+}
+.dv-hero {
+  font-size: clamp(44px, 6.4vw, 84px);
+  line-height: 1.12;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.045em;
+  color: var(--dv-ink);
+}
+.dv-hero--sm {
+  font-size: clamp(32px, 4vw, 48px);
+}
+.dv-lead {
+  margin-top: var(--space-32);
+  font-size: clamp(18px, 1.8vw, 24px);
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.dv-section .notice {
+  margin-top: var(--space-24);
+}
+
+/* Actions */
+.dv-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-40);
+  margin-top: var(--space-40);
+}
+.dv-pill {
+  min-height: 56px;
+  padding: 0 var(--space-32);
+  border: 0;
+  border-radius: 999px;
+  background: var(--dv-ink);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--font-body-1);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--fast);
+}
+.dv-pill:hover:not(:disabled) {
+  background: #000000;
+}
+.dv-pill:disabled {
+  background: var(--disabled);
+  cursor: not-allowed;
+}
+.dv-link {
+  border: 0;
+  background: none;
+  padding: var(--space-8) 0;
+  font: inherit;
+  font-size: var(--font-body-1);
+  color: var(--primary-ink);
+  cursor: pointer;
+}
+.dv-link:hover {
+  text-decoration: underline;
+}
+.dv-pill:focus-visible,
+.dv-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* 분석 전: form */
+.dv-form {
+  margin-top: var(--space-48);
+}
+.dv-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-24) 112px;
+}
+.dv-field label,
+.dv-label {
+  display: block;
+  margin-bottom: var(--space-12);
+  font-size: var(--font-body-2);
+  color: var(--text-sub);
+}
+.dv-field input[type="date"] {
+  width: 300px;
+  max-width: 100%;
+  height: 64px;
+  padding: 0 var(--space-28);
+  border: 1px solid var(--dv-line);
+  border-radius: 16px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 22px;
+  color: var(--dv-ink);
+}
+.dv-field input[type="date"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.dv-static {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  font-size: 22px;
+  font-weight: var(--weight-medium);
+}
+
+/* 분석 전: steps */
+.dv-steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-32);
+  margin-top: 96px;
+  padding-top: var(--space-48);
+  border-top: 1px solid var(--dv-line);
+}
+.dv-step-num {
+  display: block;
+  font-size: var(--font-body-2);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.dv-steps strong {
+  display: block;
+  margin-top: var(--space-28);
+  font-size: var(--font-headline-5);
+  font-weight: var(--weight-semibold);
+}
+.dv-steps p {
+  margin-top: var(--space-16);
+  font-size: var(--font-body-1);
+  color: var(--text-sub);
+}
+
+/* 분석 후: KPIs */
+.dv-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-32);
+  margin-top: 64px;
+  padding-top: var(--space-40);
+  border-top: 1px solid var(--dv-line);
+}
+.dv-kpis dt {
+  font-size: var(--font-body-2);
+  color: var(--text-sub);
+}
+.dv-kpis dd {
+  margin: var(--space-16) 0 0;
+  font-size: clamp(44px, 5vw, 64px);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.dv-kpis small,
+.dv-alloc small {
+  margin-left: var(--space-8);
+  font-size: var(--font-title);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  color: var(--text-sub);
+}
+
+/* 분석 후: chart band */
+.dv-band {
+  margin: 0 calc(-1 * var(--space-32));
+  padding: 64px var(--space-32) var(--space-48);
+  background: var(--bg-sub);
+}
+.dv-band-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+  flex-wrap: wrap;
+}
+.dv-band h2,
+.dv-alloc h2 {
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.035em;
+  line-height: 1.35;
+}
+.dv-legend {
+  display: flex;
+  gap: var(--space-24);
+  font-size: var(--font-body-3);
+  color: var(--text-sub);
+}
+.dv-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  margin-right: var(--space-8);
+  vertical-align: middle;
+  border-top: 3px solid var(--dv-chart);
+}
+.dv-legend-dem::before {
+  border-top: 3px dashed var(--muted) !important;
+}
+.flow-chart {
+  position: relative;
+  margin-top: var(--space-48);
+}
+.flow-chart svg {
+  display: block;
+  width: 100%;
+  height: 300px;
+  overflow: visible;
+}
+.flow-grid {
+  stroke: var(--dv-line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.flow-surplus {
+  fill: var(--dv-chart-fill);
+}
+.flow-demand {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+  vector-effect: non-scaling-stroke;
+}
+.flow-generation {
+  fill: none;
+  stroke: var(--dv-chart);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.flow-callout {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  font-size: var(--font-body-3);
+  color: var(--dv-chart);
+  white-space: nowrap;
+}
+.flow-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-24);
+  font-size: var(--font-body-3);
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.dv-caption {
+  margin-top: var(--space-32);
+  font-size: var(--font-body-3);
+  color: var(--text-sub);
+}
+
+/* 분석 후: allocation */
+.dv-alloc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-48);
+  padding-top: 72px;
+}
+.dv-alloc > div > p {
+  margin-top: var(--space-28);
+  font-size: var(--font-title);
+  line-height: 1.7;
+  color: var(--text-sub);
+}
+.dv-alloc ul {
+  list-style: none;
+}
+.dv-alloc li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-24) 0;
+  border-bottom: 1px solid var(--dv-line);
+}
+.dv-alloc li:first-child {
+  padding-top: 0;
+}
+.dv-alloc li strong {
+  display: block;
+  font-size: var(--font-title);
+  font-weight: var(--weight-medium);
+}
+.dv-alloc li span {
+  display: block;
+  margin-top: var(--space-8);
+  font-size: var(--font-body-2);
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.dv-alloc li p {
+  font-size: 30px;
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.dv-alloc li small {
+  font-size: var(--font-body-3);
+  margin-left: var(--space-4);
+}
+
+/* Details */
+.dv-details {
+  margin-top: var(--space-16);
+  padding-top: var(--space-24);
+  border-top: 1px solid var(--dv-line);
+  font-size: var(--font-body-2);
+  color: var(--text-sub);
+}
+.dv-details summary {
+  cursor: pointer;
+}
+.dv-details p {
+  margin-top: var(--space-12);
+  line-height: 1.8;
+  max-width: 920px;
+}
+
+@media (max-width: 900px) {
+  .dv-steps,
+  .dv-kpis,
+  .dv-alloc {
+    grid-template-columns: 1fr;
+  }
+  .dv-steps {
+    margin-top: 64px;
+  }
+  .dv-fields {
+    gap: var(--space-24) var(--space-48);
+  }
+}
+@media (max-width: 640px) {
+  .dv-actions {
+    gap: var(--space-24);
+    flex-wrap: wrap;
+  }
+  .dv-pill {
+    min-height: 48px;
+  }
+  .dv-meta {
+    gap: var(--space-4) var(--space-12);
+  }
+  .dv-meta span + span {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .flow-chart svg {
+    height: 220px;
+  }
+  .dv-band {
+    padding: var(--space-40) var(--space-16) var(--space-32);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dv-pill {
+    transition: none;
+  }
+}
+
+/* 분석 전 / 분석 후 tabs fill the full width, two equal segments */
+.dv .dv-tabs {
+  display: flex;
+  width: 100%;
+}
+.dv .dv-tabs .dv-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

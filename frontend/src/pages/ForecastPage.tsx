@@ -1,118 +1,130 @@
-import { lazy, Suspense } from "react";
-import { ArrowUpRight, Clock3, Info } from "lucide-react";
 import type { AnalysisRun } from "../features/analysis/types";
-import { EmptyState } from "../components/EmptyState";
-import { AllocationPanel } from "../features/allocation/AllocationPanel";
+import { labels } from "../features/analysis/state";
+import {
+  FlowChart,
+  RiskStrip,
+  fmt,
+  pad,
+  surplusSpan,
+} from "../features/analysis/FlowChart";
 
-const GenerationChart = lazy(() =>
-  import("../features/analysis/GenerationChart").then((m) => ({
-    default: m.GenerationChart,
-  })),
-);
-export function ForecastPage({ run }: { run: AnalysisRun | null }) {
+const riskLabel = { NORMAL: "정상 범위", CAUTION: "경계", CRITICAL: "위험" };
+
+export function ForecastPage({
+  run,
+  onNext,
+}: {
+  run: AnalysisRun | null;
+  onNext?: () => void;
+}) {
   const result = run?.result;
+  if (!result) {
+    return (
+      <section className="ed-empty" aria-live="polite">
+        <h2>
+          {run?.status === "failed"
+            ? "분석이 완료되지 않았습니다."
+            : run
+              ? `${labels[run.status]}입니다.`
+              : "아직 확인한 예측이 없습니다."}
+        </h2>
+        <p>
+          {run?.status === "failed"
+            ? "필수 데이터 또는 서버 설정을 확인하세요. 확인되지 않은 결과는 표시하지 않습니다."
+            : "위 조건으로 분석을 요청하면 시간별 발전량과 수요가 이곳에 표시됩니다."}
+        </p>
+      </section>
+    );
+  }
+  const span = surplusSpan(result.hourly);
+  const peak = `${pad(result.peak_hour)}:00–${pad((result.peak_hour + 1) % 24)}:00`;
   return (
     <>
-      <div className="forecast-grid">
-        <section className="panel chart-panel">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">DAY-AHEAD OUTLOOK</span>
-              <h2>시간별 발전량과 수요</h2>
-            </div>
-            <span className="small-chip">KST · 24시간</span>
-          </div>
-          {result ? (
-            <Suspense
-              fallback={
-                <div className="chart-loading" role="status">
-                  차트 표시 준비 중
-                </div>
-              }
-            >
-              <GenerationChart result={result} />
-            </Suspense>
-          ) : (
-            <EmptyState
-              title={
-                run?.status === "failed"
-                  ? "분석이 완료되지 않았습니다"
-                  : undefined
-              }
-              description={
-                run?.status === "failed"
-                  ? "필수 데이터 또는 서버 설정을 확인하세요. 확인되지 않은 결과는 표시하지 않습니다."
-                  : undefined
-              }
-            />
-          )}
-        </section>
-        <aside className="panel summary-panel">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">REVIEW BRIEF</span>
-              <h2>검토 요약</h2>
-            </div>
-            <ArrowUpRight size={20} />
-          </div>
-          <p className="summary-label">피크 잉여전력</p>
-          <div className="big-number">
-            {result ? result.peak_surplus_mwh.toFixed(1) : "—"}
-            <span>MWh</span>
-          </div>
-          <span
-            className={`risk-badge risk-badge--${result?.risk.toLowerCase() || "empty"}`}
-          >
-            {result
-              ? { NORMAL: "정상 범위", CAUTION: "경계", CRITICAL: "위험" }[
-                  result.risk
-                ]
-              : "분석 결과 없음"}
-          </span>
-          <dl className="summary-list">
-            <div>
-              <dt>
-                <Clock3 size={15} />
-                피크 시간
-              </dt>
-              <dd>
-                {result
-                  ? `${String(result.peak_hour).padStart(2, "0")}:00–${String(result.peak_hour + 1).padStart(2, "0")}:00`
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt>흡수 권고 비율</dt>
-              <dd>
-                {run?.allocation
-                  ? run.allocation.absorption_pct.toFixed(1) + "%"
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt>재조회 횟수</dt>
-              <dd>{run?.result ? `${run.refresh_count || 0}회` : "—"}</dd>
-            </div>
-          </dl>
-          <div className="summary-note">
-            <Info size={17} />
-            <p>
-              예측값은 검토를 위한 참고 정보입니다. 현장 운영 검증과 실제 조치
-              승인을 대신하지 않습니다.
-            </p>
-          </div>
-        </aside>
-      </div>
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">RESOURCE ALLOCATION</span>
-            <h2>분산자원 배분 권고</h2>
-          </div>
-          <span className="small-chip">피크 1시간 기준</span>
+      <dl className="dv-kpis ed-kpis">
+        <div>
+          <dt>피크 잉여전력 · {riskLabel[result.risk]}</dt>
+          <dd>
+            {fmt(result.peak_surplus_mwh)}
+            <small>MWh</small>
+          </dd>
         </div>
-        <AllocationPanel run={run} />
+        <div>
+          <dt>피크 시간 · KST</dt>
+          <dd className="ed-kpi-time">{peak}</dd>
+        </div>
+        <div>
+          <dt>잉여 발생 구간</dt>
+          <dd className="ed-kpi-time">
+            {span ? `${span[0]}–${span[1]}시` : "없음"}
+          </dd>
+        </div>
+        <div>
+          <dt>경계값 재조회</dt>
+          <dd>
+            {run.refresh_count || 0}
+            <small>회</small>
+          </dd>
+        </div>
+      </dl>
+
+      <section className="dv-band" aria-labelledby="ed-flow-title">
+        <div className="dv-band-head">
+          <h2 id="ed-flow-title">하루의 전력 흐름</h2>
+          <div className="dv-legend" aria-hidden="true">
+            <span className="dv-legend-gen">발전량</span>
+            <span className="dv-legend-dem">수요 · 점선</span>
+          </div>
+        </div>
+        <FlowChart hourly={result.hourly} />
+        <h3 className="ed-subhead">24시간 위험 띠</h3>
+        <RiskStrip hourly={result.hourly} />
+        <p className="dv-caption">
+          {run.simulation
+            ? "시연 데이터 기준 · 실제 예측값이 아닙니다. 예측값은 현장 운영 검증과 실제 조치 승인을 대신하지 않습니다."
+            : "외부 데이터 기준 · 운영 검증 전 값입니다."}
+        </p>
       </section>
+
+      <details className="dv-details">
+        <summary>시간별 수치 보기</summary>
+        <div className="table-scroll">
+          <table className="ed-table">
+            <thead>
+              <tr>
+                <th>시간</th>
+                <th>발전량</th>
+                <th>수요</th>
+                <th>잉여</th>
+                <th>위험도</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...result.hourly]
+                .sort((a, b) => a.hour - b.hour)
+                .map((r) => (
+                  <tr key={r.hour}>
+                    <td>{pad(r.hour)}:00</td>
+                    <td>{fmt(r.generation_mwh)}</td>
+                    <td>{fmt(r.demand_mwh)}</td>
+                    <td>{fmt(r.surplus_mwh)}</td>
+                    <td>{riskLabel[r.risk]}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      {onNext && run.allocation && (
+        <nav className="ed-stepnav" aria-label="단계 이동">
+          <button type="button" className="ed-stepnav-next" onClick={onNext}>
+            다음 단계
+            <strong>
+              자원 배분 <span aria-hidden="true">›</span>
+            </strong>
+          </button>
+        </nav>
+      )}
     </>
   );
 }

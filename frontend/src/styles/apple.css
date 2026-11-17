@@ -1,0 +1,382 @@
+/*
+ * Apple-style theme layer. Loaded last (main.tsx), so it overrides tokens and
+ * component styles without editing the earlier stylesheets. Remove the import
+ * in main.tsx to go back to the previous look.
+ */
+:root {
+  --apple-ink: #1d1d1f;
+  --apple-sub: #505050;
+  --apple-line: #d2d2d7;
+  --apple-gray: #f5f5f7;
+  --apple-fill: #e8e8ed;
+  --apple-accent: #00c853; /* eco green accent (fill only; text on it is dark) */
+  --apple-accent-hover: #00b34a;
+  --apple-link: #007a35;
+  --apple-red: #d70015;
+  --apple-orange: #b25000;
+
+  --text: var(--apple-ink);
+  --text-sub: var(--apple-sub);
+  --muted: var(--apple-sub);
+  --border: var(--apple-line);
+  --line-light: var(--apple-gray);
+  --background: var(--apple-gray);
+  --bg-sub: var(--apple-gray);
+  --primary: var(--apple-accent);
+  --primary-hover: var(--apple-accent-hover);
+  --on-primary: #111111;
+  --primary-ink: var(--apple-link);
+  --primary-chart: #009e42;
+  --primary-soft: #e6f9ee;
+  --primary-line: #a6ebc2;
+  --focus: var(--apple-link);
+  --dim: rgb(0 0 0 / 40%);
+  --shadow-modal: 0 24px 64px rgb(0 0 0 / 18%);
+  --panel-radius: 18px;
+  --control-radius: 12px;
+  --tracking: -0.015em;
+  color: var(--apple-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------- Global nav: frosted glass ---------- */
+.gnb,
+.gnb--overlay {
+  background: rgb(255 255 255 / 72%);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgb(0 0 0 / 12%);
+}
+.gnb-brand .brand-mark {
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.gnb-brand strong {
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+}
+.gnb-link {
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+  color: rgb(29 29 31 / 80%);
+  border-radius: 999px;
+}
+.gnb-link:hover,
+.gnb--overlay .gnb-link:hover {
+  background: none;
+  color: #000000;
+}
+.gnb-link[aria-current="page"],
+.gnb--overlay .gnb-link[aria-current="page"] {
+  color: var(--apple-ink);
+  font-weight: var(--weight-semibold);
+}
+.gnb-link[aria-current="page"]::after {
+  display: none;
+}
+.gnb-pill,
+.gnb--overlay .gnb-pill {
+  border: 0;
+  background: var(--apple-fill);
+  color: var(--apple-ink);
+}
+.gnb-pill:hover,
+.gnb--overlay .gnb-pill:hover {
+  background: #dcdce1;
+}
+.gnb-env {
+  color: var(--apple-sub);
+}
+
+/* ---------- Buttons ---------- */
+.button {
+  border-radius: 999px;
+  font-weight: var(--weight-medium);
+}
+.button--primary {
+  background: var(--apple-accent);
+  color: var(--on-primary);
+}
+.button--primary:hover {
+  background: var(--apple-accent-hover);
+}
+.button--secondary {
+  border: 0;
+  background: var(--apple-fill);
+  color: var(--apple-ink);
+}
+.button--secondary:hover {
+  background: #dcdce1;
+}
+.button--ghost {
+  color: var(--apple-link);
+}
+.dv-pill,
+.ed-conditions .analysis-form .button,
+.ed-approval .review-actions .button--primary {
+  background: var(--apple-accent);
+  color: var(--on-primary);
+}
+.dv-pill:hover:not(:disabled),
+.ed-conditions .analysis-form .button:hover:not(:disabled),
+.ed-approval .review-actions .button--primary:hover:not(:disabled) {
+  background: var(--apple-accent-hover);
+}
+.ed-approval .review-actions .button--secondary {
+  border: 0;
+  background: var(--apple-fill);
+}
+.dv-link {
+  color: var(--apple-link);
+}
+
+/* ---------- Page canvas and type ---------- */
+.dv,
+main.main--editorial {
+  --dv-ink: var(--apple-ink);
+  --dv-line: var(--apple-line);
+  --dv-chart: #009e42;
+  --dv-chart-fill: rgb(0 200 83 / 16%);
+}
+.dv-hero {
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.04em;
+}
+.dv-eyebrow,
+.dv-meta {
+  color: var(--apple-sub);
+}
+.dv-lead {
+  color: var(--apple-sub);
+}
+
+/* ---------- Segmented control (tabs) ---------- */
+.dv-tabs {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 2px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--apple-fill);
+}
+.dv-tab {
+  padding: 8px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--apple-ink);
+  transition: background 160ms ease;
+}
+.dv-tab[aria-selected="true"],
+.ed-steps .dv-tab[aria-current="page"] {
+  background: #ffffff;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 12%),
+    0 1px 1px rgb(0 0 0 / 4%);
+}
+.dv-tab[aria-selected="true"]::after,
+.ed-steps .dv-tab[aria-current="page"]::after {
+  display: none;
+}
+.ed-step-num {
+  color: var(--apple-sub);
+}
+
+/* ---------- Tiles ---------- */
+.dv-kpis,
+.ed-kpis--3 {
+  gap: 12px;
+  padding-top: 0;
+  border-top: 0;
+}
+.dv-kpis > div {
+  padding: 24px 26px;
+  border-radius: 18px;
+  background: var(--apple-gray);
+}
+.dv-kpis dt {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--apple-sub);
+}
+.ed-kpis {
+  padding-bottom: 0;
+  margin-bottom: 12px;
+}
+
+/* Chart band becomes a rounded tile */
+.dv-band {
+  margin: 12px 0 0;
+  padding: 44px 44px 32px;
+  border-radius: 28px;
+  background: var(--apple-gray);
+}
+.flow-callout {
+  font-weight: var(--weight-medium);
+  color: var(--apple-link);
+}
+.ed-risk-cell {
+  background: var(--apple-line);
+}
+.ed-risk-cell--caution {
+  background: #ff9f0a;
+}
+.ed-risk-cell--critical {
+  background: #ff3b30;
+}
+
+/* ---------- Grouped lists (iOS style) ---------- */
+.dv-alloc ul,
+.ed-history-list {
+  padding: 0 0 0 24px;
+  border-radius: 18px;
+  background: var(--apple-gray);
+}
+.dv-alloc li,
+.dv-alloc li:first-child,
+.ed-history-list li {
+  padding: 18px 24px 18px 0;
+  border-bottom: 0.5px solid var(--apple-line);
+}
+.dv-alloc li:last-child,
+.ed-history-list li:last-child {
+  border-bottom: 0;
+}
+.ed-history-head,
+.dv-details,
+.dv-steps,
+.ed-conditions {
+  border-color: var(--apple-line);
+  border-width: 0.5px;
+}
+.dv-details summary {
+  color: var(--apple-link);
+}
+
+/* ---------- Forms ---------- */
+.dv-field input[type="date"],
+.ed-conditions input[type="date"],
+.ed-conditions select {
+  border: 0.5px solid var(--apple-line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+.dv-field input[type="date"]:hover,
+.ed-conditions input[type="date"]:hover,
+.ed-conditions select:hover {
+  border-color: #86868b;
+}
+
+/* ---------- Approval ---------- */
+.ed-approval .review-facts {
+  gap: 12px;
+  padding-top: 0;
+  border-top: 0;
+}
+.ed-approval .review-facts > div {
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: var(--apple-gray);
+}
+.ed-approval .decision-record {
+  border: 0;
+  border-radius: 18px;
+  background: var(--apple-gray);
+}
+
+/* ---------- Feedback ---------- */
+.notice {
+  border-radius: 14px;
+}
+.status-badge {
+  border-radius: 999px;
+}
+.modal {
+  border: 0;
+  border-radius: 22px;
+  padding: 32px;
+}
+.modal::backdrop {
+  background: rgb(0 0 0 / 40%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* ---------- Footer ---------- */
+.page-footer {
+  border-top: 0.5px solid var(--apple-line);
+  color: var(--apple-sub);
+}
+
+@media (max-width: 900px) {
+  .dv-band {
+    padding: 32px 20px 24px;
+    border-radius: 22px;
+  }
+}
+@media (max-width: 640px) {
+  .gnb-nav {
+    background: rgb(255 255 255 / 80%);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-top: 0.5px solid rgb(0 0 0 / 12%);
+  }
+  .gnb-link[aria-current="page"],
+  .gnb--overlay .gnb-link[aria-current="page"] {
+    color: var(--apple-link);
+  }
+  .dv-tab {
+    padding: 8px 14px;
+  }
+  .dv-alloc ul,
+  .ed-history-list {
+    padding-left: 16px;
+  }
+  .dv-alloc li,
+  .ed-history-list li {
+    padding-right: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dv-tab {
+    transition: none;
+  }
+}
+
+/* ---------- Review decision: two equal buttons, full width ---------- */
+.ed-approval .review-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 12px;
+}
+.ed-approval .review-actions .button {
+  width: 100%;
+  min-height: 60px;
+  border-radius: 18px;
+  font-size: 17px;
+}
+
+/* ---------- Disabled always wins over the blue accent ---------- */
+.button:disabled,
+.button--primary:disabled,
+.dv-pill:disabled,
+.ed-conditions .analysis-form .button:disabled,
+.ed-approval .review-actions .button:disabled,
+.ed-approval .review-actions .button--primary:disabled,
+.ed-approval .review-actions .button--secondary:disabled {
+  background: var(--apple-gray);
+  color: var(--apple-sub);
+  box-shadow: inset 0 0 0 1px var(--apple-line);
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .ed-approval .review-actions {
+    grid-template-columns: 1fr;
+  }
+  .ed-approval .review-actions .button--primary {
+    order: -1;
+  }
+}
