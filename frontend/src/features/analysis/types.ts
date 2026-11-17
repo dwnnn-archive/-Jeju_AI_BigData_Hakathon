@@ -107,6 +107,42 @@ export const runSchema = z
         scope: z.literal("peak_hour_only"),
         availability_source: z.string(),
         availability_verified: z.boolean(),
+        // EV 용량을 제주데이터허브 충전소 목록으로 계산했을 때만 들어온다.
+        ev_basis: z
+          .object({
+            stations_open: z.number(),
+            stations_total: z.number(),
+            slow_chargers: z.number(),
+            fast_chargers: z.number(),
+            base_date: z.string(),
+            // history_profile: 충전 이력(월별·요일별)으로 이용률·평균 전력을 계산. assumption: 가정값.
+            basis: z.enum(["history_profile", "assumption"]),
+            history_months: z.array(z.string()).optional(),
+            // 충전소별 설치 규모 기준 상위 목록(충전소별 혼잡도는 반영하지 않음).
+            top_stations: z
+              .array(
+                z.object({
+                  name: z.string(),
+                  detail: z.string(),
+                  slow_chargers: z.number(),
+                  fast_chargers: z.number(),
+                  capacity_mwh: z.number(),
+                  share: z.number(),
+                  latitude: z.number().nullable(),
+                  longitude: z.number().nullable(),
+                }),
+              )
+              .optional(),
+            free_fraction: z
+              .object({ slow: z.number(), fast: z.number() })
+              .optional(),
+            assumptions: z.object({
+              slow_kw: z.number(),
+              fast_kw: z.number(),
+              idle_ratio: z.number(),
+            }),
+          })
+          .optional(),
       })
       .nullable(),
     draft: z.string().nullable(),
