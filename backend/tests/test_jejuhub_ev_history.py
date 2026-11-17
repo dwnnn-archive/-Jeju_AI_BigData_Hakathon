@@ -87,17 +87,28 @@ def test_weekday_factors():
     occ = {"월": 4, "화": 5, "수": 5, "목": 5, "금": 4, "토": 4, "일": 4}
     flat = [{"baseDayOfTheWeek": w, "chargingCount": n * 10} for w, n in occ.items()]
     assert weekday_factors(flat, months) == {w: pytest.approx(1.0) for w in occ}
-    busy_sat = [{**r, "chargingCount": r["chargingCount"] * 2} if r["baseDayOfTheWeek"] == "토" else r for r in flat]
+    busy_sat = [
+        {**r, "chargingCount": r["chargingCount"] * 2} if r["baseDayOfTheWeek"] == "토" else r
+        for r in flat
+    ]
     f = weekday_factors(busy_sat, months)
     assert f["토"] > 1.5 and f["월"] < 1.0
-    assert weekday_factors([], months) == dict.fromkeys("월화수목금토일", 1.0)  # 자료 없으면 보정 없음
+    assert weekday_factors([], months) == dict.fromkeys(
+        "월화수목금토일", 1.0
+    )  # 자료 없으면 보정 없음
 
 
 def stations():
     return [
         parse_station(
-            {"chargingPlace": "A", "startTime": "0:00", "endTime": "24:00:00",
-             "chargerCount": 2, "quickChargerCount": 1, "holiday": "연중무휴"}
+            {
+                "chargingPlace": "A",
+                "startTime": "0:00",
+                "endTime": "24:00:00",
+                "chargerCount": 2,
+                "quickChargerCount": 1,
+                "holiday": "연중무휴",
+            }
         )
     ]
 
@@ -116,8 +127,10 @@ def test_capacity_uses_history_profile_when_present():
 
 
 def test_weekday_factor_lowers_free_capacity_on_busy_days():
-    weekday = [{"baseYearMonth": "202203", "baseDayOfTheWeek": w, "chargingCount": 10 * n} for w, n in
-               {"월": 4, "화": 5, "수": 5, "목": 5, "금": 4, "토": 8, "일": 4}.items()]
+    weekday = [
+        {"baseYearMonth": "202203", "baseDayOfTheWeek": w, "chargingCount": 10 * n}
+        for w, n in {"월": 4, "화": 5, "수": 5, "목": 5, "금": 4, "토": 8, "일": 4}.items()
+    ]
     profile = build_profile(sample_rows(), weekday)
     sat = ev_capacity(stations(), 10, profile=profile, target_date=date(2022, 3, 5))  # 토
     mon = ev_capacity(stations(), 10, profile=profile, target_date=date(2022, 3, 7))  # 월
@@ -177,9 +190,13 @@ def test_cached_rows_resumes_and_keeps_earlier_months(tmp_path):
 
 
 def test_weekday_factor_uses_only_months_present_in_both():
-    rows = [monthly_row("완속", 10, 31, "31:00:00", 217.0, "S1", "202203"),
-            monthly_row("DC콤보", 12, 31, "15:30:00", 775.0, "F1", "202203")]
-    weekday = [{"baseYearMonth": "202204", "baseDayOfTheWeek": "토", "chargingCount": 999}]  # 월별에 없는 달
+    rows = [
+        monthly_row("완속", 10, 31, "31:00:00", 217.0, "S1", "202203"),
+        monthly_row("DC콤보", 12, 31, "15:30:00", 775.0, "F1", "202203"),
+    ]
+    weekday = [
+        {"baseYearMonth": "202204", "baseDayOfTheWeek": "토", "chargingCount": 999}
+    ]  # 월별에 없는 달
     profile = build_profile(rows, weekday)
     assert profile["weekday_months"] == []
     assert profile["weekday_factor"] == dict.fromkeys("월화수목금토일", 1.0)

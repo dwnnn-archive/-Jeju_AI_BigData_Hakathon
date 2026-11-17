@@ -22,7 +22,9 @@ SYSTEM_PROMPT = (
 MAX_ATTEMPTS = 2
 MAX_BODY_CHARS = 400  # 문자 알림용. 길면 템플릿으로 대체한다.
 HYDROGEN_NOTE = "수소 환산은 13 kg/MWh 가정값입니다."
-_NUMBER = re.compile(r"(?<![A-Za-z\d.])\d+(?:\.\d+)?")  # P2X 속 숫자 제외. 230.00MWh처럼 단위가 붙어도 통째로 잡는다
+_NUMBER = re.compile(
+    r"(?<![A-Za-z\d.])\d+(?:\.\d+)?"
+)  # P2X 속 숫자 제외. 230.00MWh처럼 단위가 붙어도 통째로 잡는다
 
 
 def build_facts(result: dict, allocation: dict) -> dict:
@@ -87,7 +89,12 @@ def make_client(api_key: str):
 
 
 def draft_with_llm(
-    result: dict, allocation: dict, *, api_key: str | None, model: str, timeout: float = 30.0,
+    result: dict,
+    allocation: dict,
+    *,
+    api_key: str | None,
+    model: str,
+    timeout: float = 30.0,
     client=None,
 ) -> tuple[str, str]:
     """(초안, 출처). 출처는 'llm' 또는 'template'(+이유)."""
@@ -101,10 +108,13 @@ def draft_with_llm(
             return template, "template:sdk_missing"
     facts = build_facts(result, allocation)
     body = None
-    for attempt in range(MAX_ATTEMPTS):  # 모델 출력은 호출마다 달라 검증에서 떨어지면 한 번 더 받는다
+    # 모델 출력은 호출마다 달라 검증에서 떨어지면 한 번 더 받는다.
+    for _ in range(MAX_ATTEMPTS):
         try:
             body = _call_claude(client, model, facts, timeout)
-        except Exception as exc:  # 네트워크·인증·한도 오류. 초안 작성 실패가 분석을 멈추게 하지 않는다.
+        except (
+            Exception
+        ) as exc:  # 네트워크·인증·한도 오류. 초안 작성 실패가 분석을 멈추게 하지 않는다.
             return template, f"template:error:{type(exc).__name__}"
         if body is None:
             return template, "template:no_text"

@@ -31,7 +31,9 @@ def test_fetch_day_sends_search_date_and_returns_rows():
 
     def handler(request):
         seen.update(request.url.params)
-        return httpx.Response(200, json={"totCnt": 1, "hasMore": False, "data": [obs("중문", "9.1000")]})
+        return httpx.Response(
+            200, json={"totCnt": 1, "hasMore": False, "data": [obs("중문", "9.1000")]}
+        )
 
     rows = fetch_day("KEY", date(2024, 3, 15), client=client_for(handler))
     assert seen["searchDate"] == "20240315" and rows[0]["observatoryName"] == "중문"
@@ -39,7 +41,9 @@ def test_fetch_day_sends_search_date_and_returns_rows():
 
 def test_fetch_day_rejects_bad_shape_and_hides_key():
     with pytest.raises(RuntimeError, match="no data list"):
-        fetch_day("K", date(2024, 1, 1), client=client_for(lambda r: httpx.Response(200, json={"x": 1})))
+        fetch_day(
+            "K", date(2024, 1, 1), client=client_for(lambda r: httpx.Response(200, json={"x": 1}))
+        )
 
     def boom(request):
         raise httpx.ConnectTimeout("t", request=request)
@@ -50,13 +54,16 @@ def test_fetch_day_rejects_bad_shape_and_hides_key():
 
 
 def test_altitudes_keep_lowest_duplicate_and_skip_bad_rows():
-    body = {"hasMore": False, "data": [
-        {"observatoryName": "강정", "seaLevelAltitude": "143.0"},
-        {"observatoryName": "강정", "seaLevelAltitude": "141.84"},
-        {"observatoryName": "윗세오름", "seaLevelAltitude": "1665.71"},
-        {"observatoryName": "고장", "seaLevelAltitude": "없음"},
-        {"seaLevelAltitude": "5"},
-    ]}
+    body = {
+        "hasMore": False,
+        "data": [
+            {"observatoryName": "강정", "seaLevelAltitude": "143.0"},
+            {"observatoryName": "강정", "seaLevelAltitude": "141.84"},
+            {"observatoryName": "윗세오름", "seaLevelAltitude": "1665.71"},
+            {"observatoryName": "고장", "seaLevelAltitude": "없음"},
+            {"seaLevelAltitude": "5"},
+        ],
+    }
     alts = fetch_altitudes("K", client=client_for(lambda r: httpx.Response(200, json=body)))
     assert alts == {"강정": 141.84, "윗세오름": 1665.71}
     assert lowland_names(alts) == set()  # 둘 다 100 m 이상

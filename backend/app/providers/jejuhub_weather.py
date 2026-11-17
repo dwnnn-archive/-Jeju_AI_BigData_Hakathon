@@ -28,14 +28,18 @@ MIN_STATIONS = 5  # 하루 평균에 필요한 최소 관측소 수
 
 
 def fetch_day(project_key: str, day: date, *, client: httpx.Client, retries: int = 2) -> list[dict]:
-    body = _get_page(client, f"{WEATHER_URL}/{project_key}", 1, retries, {"searchDate": f"{day:%Y%m%d}"})
+    body = _get_page(
+        client, f"{WEATHER_URL}/{project_key}", 1, retries, {"searchDate": f"{day:%Y%m%d}"}
+    )
     data = body.get("data")
     if not isinstance(data, list):
         raise RuntimeError("Jeju data hub response has no data list")
     return [r for r in data if isinstance(r, dict)]
 
 
-def fetch_altitudes(project_key: str, *, client: httpx.Client, retries: int = 2) -> dict[str, float]:
+def fetch_altitudes(
+    project_key: str, *, client: httpx.Client, retries: int = 2
+) -> dict[str, float]:
     """관측소명 -> 해발 고도(m). 같은 이름이 둘이면 낮은 쪽을 쓴다."""
     altitudes: dict[str, float] = {}
     for page in range(1, 20):
@@ -51,11 +55,15 @@ def fetch_altitudes(project_key: str, *, client: httpx.Client, retries: int = 2)
     raise RuntimeError("Jeju data hub returned too many pages")
 
 
-def lowland_names(altitudes: dict[str, float], max_altitude: float = LOWLAND_MAX_ALTITUDE_M) -> set[str]:
+def lowland_names(
+    altitudes: dict[str, float], max_altitude: float = LOWLAND_MAX_ALTITUDE_M
+) -> set[str]:
     return {n for n, a in altitudes.items() if a < max_altitude}
 
 
-def day_mean_temperature(rows: list[dict], names: set[str], min_stations: int = MIN_STATIONS) -> float | None:
+def day_mean_temperature(
+    rows: list[dict], names: set[str], min_stations: int = MIN_STATIONS
+) -> float | None:
     """names 에 속한 관측소의 일평균 기온을 평균한다. 값이 있는 관측소가 min_stations 미만이면 None."""
     values: list[float] = []
     for r in rows:

@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     jeju_model_dir: Path | None = None
     # 제주 수요 예측 모델 폴더(demand.json, meta.json). KPX_URL(중계)이 없을 때 live 수요에 쓴다.
     jeju_demand_model_dir: Path | None = None
-    # 통보문 초안을 LLM이 문장으로 쓰게 한다. 키가 없으면 템플릿 초안을 쓴다(수치는 항상 코드가 계산).
+    # 통보문 초안을 LLM이 문장으로 쓰게 한다. 키가 없으면 템플릿 초안(수치는 코드가 계산).
     anthropic_api_key: SecretStr | None = None
     llm_model: str = "claude-opus-5-5"
     llm_timeout: float = Field(default=30, gt=0, le=120)

@@ -36,15 +36,24 @@ def main(path: Path) -> None:
         ev_by_day[d["date"]] = ev["capacity_mwh"] if ev else caps["ev"]
     cases = [
         (f"EV 제외 (BESS+VPP+P2X = {fixed:.1f})", lambda d: fixed),
-        (f"EV 고정 {caps['ev']:.0f} 포함 (합계 {fixed + caps['ev']:.1f})", lambda d: fixed + caps["ev"]),
+        (
+            f"EV 고정 {caps['ev']:.0f} 포함 (합계 {fixed + caps['ev']:.1f})",
+            lambda d: fixed + caps["ev"],
+        ),
         ("EV 가정 82.6 포함 (이용률 50%, 출력 7/50 kW)", lambda d: fixed + 82.57),
         ("EV 충전 이력 반영 (시각별)", lambda d: fixed + ev_by_day[d["date"]]),
     ]
-    print(f"위험 판정일(CAUTION 이상) {len(flagged)}일, 기간 {days[0]['date']} ~ {days[-1]['date']}")
+    print(
+        f"위험 판정일(CAUTION 이상) {len(flagged)}일, 기간 {days[0]['date']} ~ {days[-1]['date']}"
+    )
     for name, cap in cases:
         n, frac, absorbed = share_within(flagged, cap)
         print(f"{name}: 용량 이내 {n}/{len(flagged)} = {frac:.1%}, 흡수 비율 {absorbed:.1%}")
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]) if len(sys.argv) > 1 else Settings().ev_profile_path.parent / "e2e/days.json")
+    main(
+        Path(sys.argv[1])
+        if len(sys.argv) > 1
+        else Settings().ev_profile_path.parent / "e2e/days.json"
+    )

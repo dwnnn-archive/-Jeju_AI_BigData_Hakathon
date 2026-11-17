@@ -41,7 +41,7 @@ class WeatherHour(StrictModel):
 class Capacities(StrictModel):
     bess: NonNegative = 37.7  # 제주 ESS 계량 실적의 시간당 최대 충전량(2024-01~2025-12)
     vpp: NonNegative = 30
-    p2x: NonNegative = 3.3  # 제주 행원 그린수소 실증단지 수전해 설비 용량 3.3 MW(2026-09 보도)를 1시간 흡수 상한으로
+    p2x: NonNegative = 3.3  # 행원 그린수소 실증단지 수전해 3.3 MW(2026-09 보도), 1시간 상한
     ev: NonNegative = 40
 
 

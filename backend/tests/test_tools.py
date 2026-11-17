@@ -192,4 +192,3 @@ def test_bundled_plants_use_real_capacity_and_physical_estimate_stays_simulated(
     assert len(rows) == 24
     assert source["simulated"] is True and source["validated"] is False
     assert source["capacity_sources"] == ["jeju_facility_2024-12"]
-

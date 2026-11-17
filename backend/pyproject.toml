@@ -11,6 +11,8 @@ dependencies = [
   "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "pydantic-settings>=2.8,<3",
   "langgraph>=1.0,<2", "langgraph-checkpoint-sqlite>=3,<4",
   "httpx>=0.28,<1", "filelock>=3.17,<4",
+  # Windows에는 시간대 데이터가 없어 zoneinfo("Asia/Seoul")이 실패한다.
+  "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
@@ -31,3 +33,9 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# 한글 설명(docstring·주석)은 글자 폭 2로 계산돼 100칸을 쉽게 넘는다. 코드 줄은 ruff format이 맞춘다.
+"scripts/*.py" = ["E501"]
+"app/providers/jejuhub_*.py" = ["E501"]
+"app/tools/tool6_llm.py" = ["E501"]

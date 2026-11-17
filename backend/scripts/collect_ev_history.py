@@ -53,7 +53,8 @@ def main(argv: list[str]) -> int:
     key = settings.jejuhub_project_key.get_secret_value()
     cache = settings.ev_profile_path.parent / "ev_history_raw"
     new_months = [
-        m for m in months
+        m
+        for m in months
         if not ((cache / f"monthly-{m}.json").exists() and (cache / f"weekday-{m}.json").exists())
     ]
     if len(new_months) > limit:
@@ -73,11 +74,17 @@ def main(argv: list[str]) -> int:
             params = {"startDate": m, "endDate": m}
             try:
                 got, new1 = cached_rows(
-                    cache, "monthly", m, partial(fetch_rows, key, MONTHLY_URL, params, client=client)
+                    cache,
+                    "monthly",
+                    m,
+                    partial(fetch_rows, key, MONTHLY_URL, params, client=client),
                 )
                 monthly += got
                 wk, new2 = cached_rows(
-                    cache, "weekday", m, partial(fetch_rows, key, WEEKDAY_URL, params, client=client)
+                    cache,
+                    "weekday",
+                    m,
+                    partial(fetch_rows, key, WEEKDAY_URL, params, client=client),
                 )
                 weekday += wk
             except QuotaExceeded:
@@ -93,7 +100,9 @@ def main(argv: list[str]) -> int:
             )
     print(f"이번 실행 허브 호출 {call_count()}회 (내역: runtime/hub_calls.log)")
     if stopped:
-        print(f"{stopped}부터 하루 호출 한도로 멈췄습니다. 한도가 풀린 뒤 다시 실행하면 이어받습니다.")
+        print(
+            f"{stopped}부터 하루 호출 한도로 멈췄습니다. 한도가 풀린 뒤 다시 실행하면 이어받습니다."
+        )
     try:
         profile = build_profile(monthly, weekday)
     except ValueError:

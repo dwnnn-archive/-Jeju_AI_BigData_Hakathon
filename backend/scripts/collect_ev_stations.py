@@ -27,7 +27,9 @@ def main() -> int:
     enable_call_log(settings.ev_snapshot_path.parent / "hub_calls.log")
     try:
         with httpx.Client(timeout=settings.http_timeout) as client:
-            stations = fetch_stations(settings.jejuhub_project_key.get_secret_value(), client=client)
+            stations = fetch_stations(
+                settings.jejuhub_project_key.get_secret_value(), client=client
+            )
     except RuntimeError as exc:
         print(f"수집 실패: {exc} (이번 실행 허브 호출 {call_count()}회)", file=sys.stderr)
         return 1

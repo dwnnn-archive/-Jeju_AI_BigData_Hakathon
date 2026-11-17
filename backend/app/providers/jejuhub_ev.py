@@ -76,7 +76,7 @@ class EvStation:
 
 
 def _minutes(raw) -> int | None:
-    """"0:00", "09:00", "24:00:00" 같은 값을 하루 중 분(0~1439)으로 바꾼다.
+    """ "0:00", "09:00", "24:00:00" 같은 값을 하루 중 분(0~1439)으로 바꾼다.
 
     실제 응답은 가이드 예시(HH:MM)와 달리 앞자리 0이 없거나("0:00") 초가 붙는다("24:00:00").
     24:00 은 하루의 끝이라 1439 로 본다. "알 수 없음" 같은 값은 None.
@@ -174,7 +174,9 @@ def _get_page(
             response = client.get(
                 url, params={**(extra or {}), "number": page, "limit": PAGE_LIMIT}
             )
-        except httpx.TransportError as exc:  # 시간 초과·연결 실패. 메시지에 URL이 있어 종류만 남긴다.
+        except (
+            httpx.TransportError
+        ) as exc:  # 시간 초과·연결 실패. 메시지에 URL이 있어 종류만 남긴다.
             last = type(exc).__name__
             _record(url, last)
             continue
@@ -236,7 +238,9 @@ def ev_capacity(
         # 충전 이력 기반: 실제 평균 전력 x (1 - 그 시각 점유율 x 요일 보정).
         factor = 1.0
         if target_date is not None:
-            factor = float(profile["weekday_factor"].get("월화수목금토일"[target_date.weekday()], 1.0))
+            factor = float(
+                profile["weekday_factor"].get("월화수목금토일"[target_date.weekday()], 1.0)
+            )
         free = {g: 1 - min(1.0, profile[g]["occupancy"][hour] * factor) for g in ("slow", "fast")}
         slow_kw, fast_kw = profile["slow"]["avg_kw"], profile["fast"]["avg_kw"]
         installed_mwh = (slow * slow_kw + fast * fast_kw) / 1000
@@ -252,7 +256,9 @@ def ev_capacity(
         capacity_mwh = installed_mwh * idle_ratio
 
     def station_mwh(st: EvStation) -> float:
-        return (st.slow_count * slow_kw * free["slow"] + st.fast_count * fast_kw * free["fast"]) / 1000
+        return (
+            st.slow_count * slow_kw * free["slow"] + st.fast_count * fast_kw * free["fast"]
+        ) / 1000
 
     ranked = sorted(open_stations, key=lambda st: (-station_mwh(st), st.name))[: max(0, top_n)]
     top_stations = [

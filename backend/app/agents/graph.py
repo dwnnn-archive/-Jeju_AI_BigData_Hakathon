@@ -168,8 +168,11 @@ def build_graph(bundle, store, saver, max_refreshes):
         cfg = bundle.settings
         key = cfg.anthropic_api_key.get_secret_value() if cfg.anthropic_api_key else None
         text, source = draft_with_llm(
-            state["result"], state["allocation"],
-            api_key=key, model=cfg.llm_model, timeout=cfg.llm_timeout,
+            state["result"],
+            state["allocation"],
+            api_key=key,
+            model=cfg.llm_model,
+            timeout=cfg.llm_timeout,
         )
         return {
             "draft": text,

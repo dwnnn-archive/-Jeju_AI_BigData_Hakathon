@@ -72,7 +72,9 @@ def calibration_bias(hub: dict[date, float], asos: dict[date, float], year: int)
 
 
 # ---------- 허브 수집 ----------
-def collect_hub(settings: Settings, start: date, end: date, cache: Path, refetch_empty: bool) -> dict:
+def collect_hub(
+    settings: Settings, start: date, end: date, cache: Path, refetch_empty: bool
+) -> dict:
     key = settings.jejuhub_project_key.get_secret_value()
     alt_path = cache / "stations.json"
     new = cached = 0
@@ -117,8 +119,13 @@ def collect_hub(settings: Settings, start: date, end: date, cache: Path, refetch
 
 
 # ---------- 수요 모델 비교 ----------
-def demand_validation(demand_dir: Path, asos_hourly: dict, asos_day: dict[date, float],
-                      hub: dict[date, float], calib_year: int) -> dict:
+def demand_validation(
+    demand_dir: Path,
+    asos_hourly: dict,
+    asos_day: dict[date, float],
+    hub: dict[date, float],
+    calib_year: int,
+) -> dict:
     import scripts.train_demand_model as t  # xgboost 가 필요하다
     from app.tools.jeju_model import trend_years
 
@@ -126,7 +133,9 @@ def demand_validation(demand_dir: Path, asos_hourly: dict, asos_day: dict[date, 
     train_dates = [d for d, _ in demand if date(2017, 1, 1) <= d <= TRAIN_END]
     trend_max = trend_years(max(train_dates))
     train_rows = [
-        r for r in t.build_rows(demand, asos_hourly, date(2017, 1, 1), trend_max) if r[0] <= TRAIN_END
+        r
+        for r in t.build_rows(demand, asos_hourly, date(2017, 1, 1), trend_max)
+        if r[0] <= TRAIN_END
     ]
     model = t._fit(train_rows)
     bias = calibration_bias(hub, asos_day, calib_year)
@@ -136,8 +145,13 @@ def demand_validation(demand_dir: Path, asos_hourly: dict, asos_day: dict[date, 
         keep = set(days)
         rows = [r for r in t.build_rows(demand, temps, min(days), trend_max) if r[0] in keep]
         s = t._summary([r[0] for r in rows], [r[3] for r in rows], t._predict(model, rows))
-        return {"days": len(days), "mae_mw": s["mae_mwh"], "mape_pct": s["mape_pct"],
-                "bias_mw": s["bias_mwh"], "daily_peak_mae_mw": s["daily_peak_mae_mwh"]}
+        return {
+            "days": len(days),
+            "mae_mw": s["mae_mwh"],
+            "mape_pct": s["mape_pct"],
+            "bias_mw": s["bias_mwh"],
+            "daily_peak_mae_mw": s["daily_peak_mae_mwh"],
+        }
 
     result: dict = {"calibration_year": calib_year, "calibration_bias_c": bias, "by_year": {}}
     years = sorted({d.year for d in hub if d > TRAIN_END})
@@ -156,13 +170,19 @@ def demand_validation(demand_dir: Path, asos_hourly: dict, asos_day: dict[date, 
 
 
 def main(argv: list[str]) -> int:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("demand_dir", type=Path, help="KPX 시간별 제주전력수요 파일 폴더")
     p.add_argument("--start", type=date.fromisoformat, default=date(2024, 1, 1))
     p.add_argument("--end", type=date.fromisoformat, default=date(2025, 12, 31))
     p.add_argument("--asos-dir", type=Path, default=Path("runtime/asos"))
     p.add_argument("--out", type=Path, default=Path("runtime/hub_weather_check.json"))
-    p.add_argument("--refetch-empty", action="store_true", help="비어 있던 날을 다시 받는다(호출 한도를 크게 쓴다. 2025-03 이후는 원래 비어 있다)")
+    p.add_argument(
+        "--refetch-empty",
+        action="store_true",
+        help="비어 있던 날을 다시 받는다(호출 한도를 크게 쓴다. 2025-03 이후는 원래 비어 있다)",
+    )
     a = p.parse_args(argv)
     if a.start <= TRAIN_END:
         print("시작일은 학습 구간(2023-12-31) 이후여야 합니다.", file=sys.stderr)
@@ -182,8 +202,10 @@ def main(argv: list[str]) -> int:
     print(f"이번 실행 허브 호출 {call_count()}회 (내역: runtime/hub_calls.log)")
     if got["stopped_at"]:
         print(f"{got['stopped_at']}부터 하루 호출 한도로 멈췄습니다. 받은 날까지만 분석합니다.")
-    print(f"허브 일별 기상: 새로 {got['fetched']}일, 저장본 {got['cached']}일, 사용 가능 {len(hub)}일, "
-          f"데이터 없는 날 {len(got['empty_days'])}일")
+    print(
+        f"허브 일별 기상: 새로 {got['fetched']}일, 저장본 {got['cached']}일, 사용 가능 {len(hub)}일, "
+        f"데이터 없는 날 {len(got['empty_days'])}일"
+    )
 
     import scripts.train_demand_model as t
 
@@ -202,19 +224,27 @@ def main(argv: list[str]) -> int:
         "crosscheck": crosscheck(hub, asos_day),
     }
     c = report["crosscheck"]
-    print(f"교차검증 {c['days']}일: 상관 {c['correlation']:.4f}, 편향 {c['bias_c']:+.2f}℃, "
-          f"MAE {c['mae_c']:.2f}℃, 최대 차이 {c['max_abs_diff_c']:.1f}℃")
+    print(
+        f"교차검증 {c['days']}일: 상관 {c['correlation']:.4f}, 편향 {c['bias_c']:+.2f}℃, "
+        f"MAE {c['mae_c']:.2f}℃, 최대 차이 {c['max_abs_diff_c']:.1f}℃"
+    )
     calib_year = a.start.year
     try:
         report["demand"] = demand_validation(a.demand_dir, asos_hourly, asos_day, hub, calib_year)
     except ModuleNotFoundError as exc:
-        print(f"수요 모델 비교를 건너뜁니다({exc.name} 없음, `uv sync --extra ml`).", file=sys.stderr)
+        print(
+            f"수요 모델 비교를 건너뜁니다({exc.name} 없음, `uv sync --extra ml`).", file=sys.stderr
+        )
     else:
-        print(f"허브 편향 보정값({calib_year}년 기준): {report['demand']['calibration_bias_c']:+.2f}℃")
+        print(
+            f"허브 편향 보정값({calib_year}년 기준): {report['demand']['calibration_bias_c']:+.2f}℃"
+        )
         for year, e in report["demand"]["by_year"].items():
             for label, m in e.items():
-                print(f"  {year} {label:15s} {m['days']:4d}일  MAE {m['mae_mw']:.2f} MW  "
-                      f"MAPE {m['mape_pct']:.2f}%  편향 {m['bias_mw']:+.2f} MW  하루 최대 MAE {m['daily_peak_mae_mw']:.2f}")
+                print(
+                    f"  {year} {label:15s} {m['days']:4d}일  MAE {m['mae_mw']:.2f} MW  "
+                    f"MAPE {m['mape_pct']:.2f}%  편향 {m['bias_mw']:+.2f} MW  하루 최대 MAE {m['daily_peak_mae_mw']:.2f}"
+                )
     args_out = a.out
     args_out.parent.mkdir(parents=True, exist_ok=True)
     args_out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -3,12 +3,18 @@ from types import SimpleNamespace
 from app.tools.tool6_llm import build_facts, draft_with_llm, is_faithful
 
 RESULT = {
-    "date": "2026-11-18", "peak_hour": 12, "risk": "CRITICAL", "peak_ratio": 0.73,
-    "peak_surplus_mwh": 230.0, "thresholds": {"warning_ratio": 0.40},
+    "date": "2026-11-18",
+    "peak_hour": 12,
+    "risk": "CRITICAL",
+    "peak_ratio": 0.73,
+    "peak_surplus_mwh": 230.0,
+    "thresholds": {"warning_ratio": 0.40},
 }
 PLAN = {
     "allocated_mwh": {"bess": 70.0, "vpp": 30.0, "p2x": 30.0, "ev": 40.0},
-    "absorption_pct": 73.913, "residual_mwh": 60.0, "hydrogen_kg": 390.0,
+    "absorption_pct": 73.913,
+    "residual_mwh": 60.0,
+    "hydrogen_kg": 390.0,
 }
 GOOD = (
     "2026-11-18 12:00 KST에 CRITICAL 위험이 예상됩니다. 피크 잉여전력은 230.00 MWh이며 "

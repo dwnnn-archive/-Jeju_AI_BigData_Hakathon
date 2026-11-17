@@ -72,7 +72,9 @@ def test_fetch_recovers_after_transient_server_error():
 
 def test_fetch_rejects_client_error_and_bad_shape():
     with pytest.raises(RuntimeError, match="HTTP 401"):
-        fetch_stations("K", client=client_for(lambda r: httpx.Response(401)), base_url="https://h/p")
+        fetch_stations(
+            "K", client=client_for(lambda r: httpx.Response(401)), base_url="https://h/p"
+        )
     with pytest.raises(RuntimeError, match="no data list"):
         fetch_stations(
             "K",
@@ -135,7 +137,9 @@ def test_real_world_time_formats_and_restricted_stations():
     stations = [
         parse_station({**row("24h", slow=2, fast=0), "startTime": "0:00", "endTime": "24:00:00"}),
         parse_station({**row("nine", slow=1, fast=0), "startTime": "9:00", "endTime": "18:00"}),
-        parse_station({**row("unknown", slow=5, fast=5), "startTime": "알 수 없음", "endTime": "알 수 없음"}),
+        parse_station(
+            {**row("unknown", slow=5, fast=5), "startTime": "알 수 없음", "endTime": "알 수 없음"}
+        ),
         parse_station({**row("resident", slow=9, fast=0), "holiday": "입주민 전용"}),
         parse_station({**row("outsider", slow=9, fast=0), "holiday": "외부인 출입제한"}),
     ]
@@ -149,11 +153,18 @@ def test_real_world_time_formats_and_restricted_stations():
 
 
 def _st(name, slow, fast, start="0:00", end="24:00:00", holiday="연중무휴"):
-    return parse_station({
-        "chargingPlace": name, "startTime": start, "endTime": end, "chargerCount": slow,
-        "quickChargerCount": fast, "holiday": holiday,
-        "latitude": 33.1, "longitude": 126.4,
-    })
+    return parse_station(
+        {
+            "chargingPlace": name,
+            "startTime": start,
+            "endTime": end,
+            "chargerCount": slow,
+            "quickChargerCount": fast,
+            "holiday": holiday,
+            "latitude": 33.1,
+            "longitude": 126.4,
+        }
+    )
 
 
 def test_top_stations_ranked_by_capacity_and_filtered():
@@ -190,8 +201,15 @@ def test_top_station_ties_are_deterministic_by_name():
 
 def test_rows_per_charge_type_are_counted_once():
     # 실제 API: 충전 방식별로 행이 나뉘고 충전소 전체 충전기 수가 행마다 반복된다.
-    base = {"chargingPlace": "의귀융복합충전스테이션", "latitude": 33.3, "longitude": 126.7,
-            "chargerCount": 3, "quickChargerCount": 15, "startTime": "0:00", "endTime": "24:00:00"}
+    base = {
+        "chargingPlace": "의귀융복합충전스테이션",
+        "latitude": 33.3,
+        "longitude": 126.7,
+        "chargerCount": 3,
+        "quickChargerCount": 15,
+        "startTime": "0:00",
+        "endTime": "24:00:00",
+    }
     rows = [{**base, "quickChargingType": t} for t in ("DC차데모+AC3상+DC콤보", "DC콤보", "AC완속")]
     other = {**base, "chargingPlace": "다른곳", "chargerCount": 1, "quickChargerCount": 0}
 
@@ -209,7 +227,9 @@ def test_old_snapshot_with_repeated_rows_is_deduped_on_load(tmp_path):
 
     path = tmp_path / "old.json"
     one = parse_station(row("A", slow=2, fast=1)).__dict__
-    path.write_text(json.dumps({"fetched_at": "x", "stations": [one, dict(one), dict(one)]}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"fetched_at": "x", "stations": [one, dict(one), dict(one)]}), encoding="utf-8"
+    )
     stations, _ = load_snapshot(path)
     assert len(stations) == 1
 
@@ -217,13 +237,22 @@ def test_old_snapshot_with_repeated_rows_is_deduped_on_load(tmp_path):
 def test_notification_names_top_stations_only_when_hub_data_present():
     from app.tools.tool6_notification import draft_notification
 
-    result = {"date": "2026-11-18", "peak_hour": 12, "risk": "CRITICAL", "peak_ratio": 0.5,
-              "peak_surplus_mwh": 10.0, "thresholds": {"warning_ratio": 0.4}}
+    result = {
+        "date": "2026-11-18",
+        "peak_hour": 12,
+        "risk": "CRITICAL",
+        "peak_ratio": 0.5,
+        "peak_surplus_mwh": 10.0,
+        "thresholds": {"warning_ratio": 0.4},
+    }
     plan = {"allocated_mwh": {}, "absorption_pct": 100.0, "residual_mwh": 0.0, "hydrogen_kg": 0.0}
     plain = draft_notification(result, plan)
     assert "충전소" not in plain and "시연 추정치" in plain
     stations = [_st("가", 5, 0), _st("나", 4, 0), _st("다", 3, 0), _st("라", 2, 0)]
     top = ev_capacity(stations, 12)["top_stations"]
     text = draft_notification(result, {**plan, "ev_basis": {"top_stations": top}})
-    assert "가, 나, 다" in text and "라" not in text.split("충전소(설치 규모 기준):")[1].splitlines()[0]
+    assert (
+        "가, 나, 다" in text
+        and "라" not in text.split("충전소(설치 규모 기준):")[1].splitlines()[0]
+    )
     assert "EV 용량만 제주데이터허브" in text
