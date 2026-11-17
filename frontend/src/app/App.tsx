@@ -35,6 +35,7 @@ const steps = [
     id: "forecast",
     label: "발전량 예측",
     short: "예측",
+    headline: "발전량 예측.",
     description:
       "다음날 시간별 발전량과 수요를 비교해 대응이 필요한 시간을 찾습니다.",
   },
@@ -42,6 +43,7 @@ const steps = [
     id: "allocation",
     label: "자원 배분",
     short: "배분",
+    headline: "자원 배분.",
     description:
       "피크 1시간의 잉여전력을 어떤 자원에 얼마나 흡수시킬지 권고합니다.",
   },
@@ -49,6 +51,7 @@ const steps = [
     id: "approval",
     label: "승인 관리",
     short: "검토·승인",
+    headline: "검토와 결정.",
     description: "이 분석 결과에 대해 담당자가 시연 승인 또는 반려를 남깁니다.",
   },
 ] as const;
@@ -150,13 +153,14 @@ export function App() {
   useEffect(() => {
     if (isStep(page)) setLastStep(page);
   }, [page]);
-  function submit() {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
+  function submit(request: AnalysisRequest = form) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(request.date)) {
       setFormError("예측 대상일을 선택하세요.");
       return;
     }
     setFormError("");
-    void analysis.submit(form);
+    setForm(request);
+    void analysis.submit(request);
   }
   function openItem(item: AnalysisSummary) {
     setForm(item.request);
@@ -255,7 +259,13 @@ export function App() {
       <div className="workspace">
         <main
           id="main"
-          className={page === "landing" ? "main--landing" : undefined}
+          className={
+            page === "landing"
+              ? "main--landing"
+              : isStep(page) || page === "history"
+                ? "main--editorial"
+                : undefined
+          }
         >
           {page === "landing" ? (
             <LandingPage
@@ -273,47 +283,34 @@ export function App() {
             <DashboardPage
               run={run}
               transport={transport}
-              items={items}
-              historyLoading={historyBusy}
-              historyError={historyError}
-              onNewAnalysis={() => setPage("forecast")}
-              onOpenHistory={() => setPage("history")}
+              date={form.date}
+              onDateChange={(date) => setForm({ ...form, date })}
+              onSubmit={() => submit({ ...form, region: "jeju" })}
+              submitDisabled={unresolved || transport === "sending"}
+              formError={formError}
               onGoReview={() => setPage("approval")}
-              onSelect={openItem}
+              onOpenForecast={() => setPage("forecast")}
             />
           ) : (
-            <>
-              <div className="page-heading">
-                <div>
-                  <p className="eyebrow">
-                    {activeStep ? "ANALYSIS" : "ANALYSIS RECORDS"}
-                  </p>
-                  <h1>{pageLabel(page)}</h1>
-                  <p>
-                    {activeStep
-                      ? activeStep.description
-                      : "최근 분석 기록을 확인하고 결과를 다시 엽니다."}
-                  </p>
-                </div>
-                <span className="date-note">한국 표준시 · KST</span>
-              </div>
-              <div className="mode-banner">
-                <span className="mode-tag">
-                  {form.mode === "demo"
-                    ? "시연 모드"
-                    : "외부 데이터 · 운영 검증 전"}
-                </span>
-                <p>
-                  {form.mode === "demo"
-                    ? "미리 정한 데이터로 분석과 검토 절차를 확인합니다. 실제 예측·설비 제어 결과가 아닙니다."
-                    : "외부 데이터 조회를 시도합니다. 미검증 결과는 실제 조치나 발송에 사용할 수 없습니다."}
-                </p>
-              </div>
-            </>
+            <header className="ed-head">
+              <p className="dv-eyebrow">
+                {activeStep
+                  ? `분석 · ${String(steps.indexOf(activeStep) + 1).padStart(2, "0")} / 03 · ${pageLabel(page)}`
+                  : "분석 기록 · 한국 표준시 KST"}
+              </p>
+              <h1 className="dv-hero dv-hero--md">
+                {activeStep ? activeStep.headline : "분석 이력."}
+              </h1>
+              <p className="dv-lead">
+                {activeStep
+                  ? activeStep.description
+                  : "최근 분석 기록을 확인하고 결과를 다시 엽니다."}
+              </p>
+            </header>
           )}
           {activeStep && (
             <>
-              <section className="panel control-panel" aria-label="분석 조건">
+              <section className="ed-conditions" aria-label="분석 조건">
                 <AnalysisForm
                   value={form}
                   onChange={setForm}
@@ -325,8 +322,18 @@ export function App() {
                     {formError}
                   </p>
                 )}
+                <p className="ed-mode">
+                  <strong>
+                    {form.mode === "demo"
+                      ? "시연 모드"
+                      : "외부 데이터 · 운영 검증 전"}
+                  </strong>
+                  {form.mode === "demo"
+                    ? "미리 정한 데이터로 분석과 검토 절차를 확인합니다. 실제 예측·설비 제어 결과가 아닙니다."
+                    : "외부 데이터 조회를 시도합니다. 미검증 결과는 실제 조치나 발송에 사용할 수 없습니다."}
+                </p>
               </section>
-              <div className="status-row">
+              <div className="status-row ed-statusline">
                 <StatusBadge run={run} transport={transport} />
                 <span className="last-confirmed">
                   서버 마지막 확인{" "}
@@ -379,38 +386,36 @@ export function App() {
                   결과가 아닙니다.
                 </p>
               )}
-              <nav className="step-tabs" aria-label="분석 단계">
+              <nav className="dv-tabs ed-steps" aria-label="분석 단계">
                 {steps.map((step, index) => (
                   <button
                     key={step.id}
-                    className="step-tab"
+                    className="dv-tab"
                     aria-current={page === step.id ? "page" : undefined}
                     aria-label={step.label}
                     onClick={() => setPage(step.id)}
                   >
-                    <span className="step-num" aria-hidden="true">
-                      {index + 1}
+                    <span className="ed-step-num" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span aria-hidden="true">{step.short}</span>
+                    <span aria-hidden="true">{step.label}</span>
                   </button>
                 ))}
               </nav>
             </>
           )}
-          {page === "forecast" && <ForecastPage run={run} />}
+          {page === "forecast" && (
+            <ForecastPage run={run} onNext={() => setPage("allocation")} />
+          )}
           {page === "allocation" && (
-            <section className="panel">
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">RESOURCE ALLOCATION</span>
-                  <h2>피크 시간의 자원 배분</h2>
-                </div>
-              </div>
-              <AllocationPanel run={run} />
-            </section>
+            <AllocationPanel
+              run={run}
+              onPrev={() => setPage("forecast")}
+              onNext={() => setPage("approval")}
+            />
           )}
           {page === "approval" && (
-            <section className="panel">
+            <section className="ed-approval">
               <ApprovalPanel
                 run={run}
                 transport={transport}
@@ -435,7 +440,7 @@ export function App() {
           {run?.sources &&
             Object.keys(run.sources).length > 0 &&
             activeStep && (
-              <details className="sources">
+              <details className="dv-details sources">
                 <summary>데이터 출처와 실행 기록</summary>
                 <div className="source-grid">
                   {Object.entries(run.sources).map(([key, value]) => (

@@ -154,11 +154,11 @@ test("changed selection cannot approve the previous result, and unauthorized app
 }) => {
   await analyze(page);
   await page.getByRole("button", { name: "승인 관리", exact: true }).click();
-  await page.getByLabel("분석 지역").selectOption("hallim");
+  await page.getByRole("radio", { name: "한림", exact: true }).check();
   await expect(
     page.getByRole("button", { name: "시연 승인 검토", exact: true }),
   ).toBeDisabled();
-  await page.getByLabel("분석 지역").selectOption("jeju");
+  await page.getByRole("radio", { name: "제주 전체", exact: true }).check();
   await page
     .getByRole("button", { name: "시연 승인 검토", exact: true })
     .click();

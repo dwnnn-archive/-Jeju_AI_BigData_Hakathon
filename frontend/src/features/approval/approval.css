@@ -76,3 +76,198 @@
   font-size: 12px;
   margin-top: 4px;
 }
+
+/* 통보문 초안 — Apple-style card (DraftView). Previous: approval_ver4.css */
+.draft-doc {
+  --apple-bg: #f5f5f7;
+  --apple-ink: #1d1d1f;
+  --apple-sub: #6e6e73;
+  --apple-line: #d2d2d7;
+  --draft-link: #007a35;
+  --apple-red: #d70015;
+  --apple-orange: #b25000;
+  --apple-green: #1d7a3a;
+  padding: 40px 44px 32px;
+  border-radius: 28px;
+  background: var(--apple-bg);
+  color: var(--apple-ink);
+  letter-spacing: -0.01em;
+}
+.draft-doc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+}
+.draft-doc-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  color: var(--apple-sub);
+}
+.draft-risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--apple-red);
+}
+.draft-risk::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.draft-risk--caution {
+  color: var(--apple-orange);
+}
+.draft-risk--normal {
+  color: var(--apple-green);
+}
+.draft-doc h3 {
+  margin-top: 20px;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: var(--weight-semibold);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.draft-doc-when {
+  margin-top: 10px;
+  font-size: 19px;
+  color: var(--apple-sub);
+}
+.draft-doc-when strong {
+  color: var(--apple-ink);
+  font-weight: var(--weight-semibold);
+}
+.draft-doc-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 32px 0 0;
+  padding: 0;
+  border: 0;
+}
+.draft-doc-facts > div {
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: #ffffff;
+}
+.draft-doc-facts dt {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--apple-sub);
+}
+.draft-doc-facts dd {
+  margin: 10px 0 0;
+  font-size: clamp(30px, 3vw, 40px);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.draft-doc-facts small,
+.draft-doc-alloc small {
+  margin-left: 4px;
+  font-size: 15px;
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  color: var(--apple-sub);
+}
+.draft-doc-sub {
+  margin: 36px 0 0 4px;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--apple-sub);
+}
+/* iOS grouped list */
+.draft-doc-alloc {
+  margin: 10px 0 0;
+  padding: 0 0 0 24px;
+  list-style: none;
+  border-radius: 18px;
+  background: #ffffff;
+}
+.draft-doc-alloc li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+  padding: 18px 24px 18px 0;
+  border-bottom: 0.5px solid var(--apple-line);
+}
+.draft-doc-alloc li:last-child {
+  border-bottom: 0;
+}
+.draft-doc-alloc span {
+  font-size: 17px;
+  color: var(--apple-ink);
+}
+.draft-doc-alloc strong {
+  font-size: 17px;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.draft-doc-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 20px 4px 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--apple-sub);
+}
+.draft-doc-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+.draft-doc-raw {
+  margin: 18px 4px 0;
+  font-size: 14px;
+}
+.draft-doc-raw summary {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--draft-link);
+  list-style: none;
+}
+.draft-doc-raw summary::-webkit-details-marker {
+  display: none;
+}
+.draft-doc-raw summary::after {
+  content: " ›";
+}
+.draft-doc-raw[open] summary::after {
+  content: " ⌄";
+}
+.draft-doc-raw summary:hover {
+  text-decoration: underline;
+}
+.draft-doc-raw pre {
+  margin-top: 12px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: #ffffff;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--apple-ink);
+}
+@media (max-width: 900px) {
+  .draft-doc {
+    padding: 28px 20px 24px;
+    border-radius: 22px;
+  }
+  .draft-doc-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

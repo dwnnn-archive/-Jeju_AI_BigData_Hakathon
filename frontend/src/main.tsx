@@ -9,9 +9,12 @@ import "./features/analysis/analysis.css";
 import "./features/allocation/allocation.css";
 import "./features/approval/approval.css";
 import "./styles/dashboard.css";
+import "./styles/editorial.css";
 import "./styles/landing.css";
 import "./styles/login.css";
 import "./styles/responsive.css";
+import "./styles/datefield.css";
+import "./styles/apple.css";
 import { App } from "./app/App";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

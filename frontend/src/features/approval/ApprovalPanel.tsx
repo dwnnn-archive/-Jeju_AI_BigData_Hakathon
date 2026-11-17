@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ShieldCheck, FileCheck2, Send } from "lucide-react";
+import { ShieldCheck, Send } from "lucide-react";
+import { DraftView } from "./DraftView";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { blockLabels, canReview } from "../analysis/state";
@@ -121,13 +122,7 @@ export function ApprovalPanel({
         </div>
       </div>
       {run?.draft ? (
-        <div className="draft">
-          <div>
-            <FileCheck2 size={16} />
-            통보문 초안
-          </div>
-          <pre>{run.draft}</pre>
-        </div>
+        <DraftView run={run} />
       ) : (
         <div className="draft-empty">검토할 초안이 아직 없습니다.</div>
       )}
