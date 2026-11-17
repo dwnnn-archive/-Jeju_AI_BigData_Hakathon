@@ -16,6 +16,7 @@ const scenarios = {
   normal: "정상일",
   boundary: "경계 재조회",
   boundary_stable: "경계 유지",
+  intraday_escalation: "당일 위험 전환",
 };
 
 /** Single-choice segmented control built on native radio buttons. */

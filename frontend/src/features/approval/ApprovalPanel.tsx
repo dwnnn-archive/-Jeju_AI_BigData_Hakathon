@@ -207,6 +207,9 @@ export function ApprovalPanel({
           <p className="notice">
             {reviewed?.request.date} · 분석 {reviewed?.id.slice(0, 8)}
             <br />
+            발전량/수요 최대{" "}
+            {((reviewed?.result?.peak_ratio ?? 0) * 100).toFixed(0)}%
+            <br />
             피크 잉여전력 {reviewed?.result?.peak_surplus_mwh.toFixed(1)} MWh
           </p>
           {!sameResult && (

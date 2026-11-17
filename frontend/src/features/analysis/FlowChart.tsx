@@ -70,20 +70,37 @@ function smoothPath(points: [number, number][]) {
   return d;
 }
 
-export function FlowChart({ hourly }: { hourly: Hourly }) {
+export function FlowChart({
+  hourly,
+  warningRatio,
+}: {
+  hourly: Hourly;
+  warningRatio?: number;
+}) {
   const clipId = useId().replace(/:/g, "");
   const W = 1000;
   const H = 300;
   const top = 40;
   const bottom = 270;
   const rows = [...hourly].sort((a, b) => a.hour - b.hour);
-  const values = rows.flatMap((r) => [r.generation_mwh, r.demand_mwh]);
+  const values = rows.flatMap((r) => [
+    r.generation_mwh,
+    r.demand_mwh,
+    r.demand_mwh * (warningRatio ?? 1),
+  ]);
   const lo = Math.min(...values) * 0.85;
   const hi = Math.max(...values) * 1.05 || 1;
   const x = (h: number) => (h / 23) * W;
   const y = (v: number) => bottom - ((v - lo) / (hi - lo)) * (bottom - top);
   const gen = smoothPath(rows.map((r) => [x(r.hour), y(r.generation_mwh)]));
   const dem = smoothPath(rows.map((r) => [x(r.hour), y(r.demand_mwh)]));
+  const boundary = smoothPath(
+    rows.map((r) => [x(r.hour), y(r.demand_mwh * (warningRatio ?? 1))]),
+  );
+  const basis =
+    warningRatio == null
+      ? "수요"
+      : `수요의 ${Math.round(warningRatio * 100)}% 대응 기준`;
   const span = surplusSpan(rows);
   return (
     <figure className="flow-chart">
@@ -93,13 +110,13 @@ export function FlowChart({ hourly }: { hourly: Hourly }) {
         role="img"
         aria-label={
           span
-            ? `시간별 발전량과 수요. ${span[0]}시부터 ${span[1]}시까지 발전량이 수요보다 많습니다.`
-            : "시간별 발전량과 수요. 발전량이 수요를 넘는 시간이 없습니다."
+            ? `시간별 발전량과 수요. ${span[0]}시부터 ${span[1]}시까지 발전량이 ${basis}보다 많습니다.`
+            : `시간별 발전량과 수요. 발전량이 ${basis}를 넘는 시간이 없습니다.`
         }
       >
         <defs>
           <clipPath id={clipId}>
-            <path d={`${dem} L${W},0 L0,0 Z`} />
+            <path d={`${boundary} L${W},0 L0,0 Z`} />
           </clipPath>
         </defs>
         {[top, (top + bottom) / 2, bottom].map((gy) => (
@@ -111,8 +128,23 @@ export function FlowChart({ hourly }: { hourly: Hourly }) {
           clipPath={`url(#${clipId})`}
         />
         <path d={dem} className="flow-demand" />
+        {warningRatio != null && (
+          <path
+            d={boundary}
+            fill="none"
+            stroke="#956100"
+            strokeWidth="2"
+            strokeDasharray="3 5"
+          />
+        )}
         <path d={gen} className="flow-generation" />
       </svg>
+      {warningRatio != null && (
+        <figcaption className="dv-caption">
+          갈색 점선: 수요의 {Math.round(warningRatio * 100)}% 대응 기준 · 음영:
+          기준 초과분
+        </figcaption>
+      )}
       {span && (
         <span
           className="flow-callout"

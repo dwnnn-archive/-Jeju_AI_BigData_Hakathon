@@ -16,7 +16,11 @@ class AnalysisRequest(StrictModel):
     region: Region | None = None
     query: str | None = Field(default=None, max_length=1000)
     mode: Literal["demo", "live"] = "demo"
-    scenario: Literal["normal", "critical", "boundary", "boundary_stable"] = "critical"
+    scenario: Literal[
+        "normal", "critical", "boundary", "boundary_stable", "intraday_escalation"
+    ] = "critical"
+    # day_ahead: 하루 전 계획(단기예보). intraday: 하루 전이 정상이던 날의 당일 점검(초단기예보).
+    phase: Literal["day_ahead", "intraday"] = "day_ahead"
 
 
 class EnergyHour(StrictModel):
@@ -35,9 +39,9 @@ class WeatherHour(StrictModel):
 
 
 class Capacities(StrictModel):
-    bess: NonNegative = 70
+    bess: NonNegative = 37.7  # 제주 ESS 계량 실적의 시간당 최대 충전량(2024-01~2025-12)
     vpp: NonNegative = 30
-    p2x: NonNegative = 30
+    p2x: NonNegative = 3.3  # 행원 그린수소 실증단지 수전해 3.3 MW(2026-09 보도), 1시간 상한
     ev: NonNegative = 40
 
 

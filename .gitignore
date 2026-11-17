@@ -14,3 +14,8 @@ dist/
 test-results/
 playwright-report/
 *.tsbuildinfo
+
+# 대회 제공 데이터(외부 배포 금지)
+*.xlsx
+data/provided/
+backend/data/provided/

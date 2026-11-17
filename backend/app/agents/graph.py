@@ -1,11 +1,15 @@
+from datetime import date
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from app.agents.state import AgentState
-from app.domain.schemas import AnalysisRequest, EnergyHour, WeatherHour
+from app.domain.rules import is_boundary
+from app.domain.schemas import AnalysisRequest, Capacities, EnergyHour, WeatherHour
+from app.providers import demo
 from app.tools.tool4_risk import evaluate
 from app.tools.tool5_allocation import allocate
-from app.tools.tool6_notification import draft_notification
+from app.tools.tool6_llm import draft_with_llm
 
 
 def build_graph(bundle, store, saver, max_refreshes):
@@ -45,7 +49,8 @@ def build_graph(bundle, store, saver, max_refreshes):
             [EnergyHour.model_validate(r) for r in state["demand"]],
             AnalysisRequest.model_validate(state["request"]).date,
         )
-        boundary = 190 <= result["peak_surplus_mwh"] <= 200
+        bundle.log_evaluation(state["id"], "day_ahead", state["refresh_count"], result)
+        boundary = is_boundary(result["peak_ratio"])
         return {
             "result": result,
             "boundary_unresolved": boundary and state["refresh_count"] >= max_refreshes,
@@ -54,6 +59,7 @@ def build_graph(bundle, store, saver, max_refreshes):
                 {
                     "refresh_count": state["refresh_count"],
                     "peak_surplus_mwh": result["peak_surplus_mwh"],
+                    "peak_ratio": result["peak_ratio"],
                     "risk": result["risk"],
                     "sources": state["sources"],
                 }
@@ -62,9 +68,78 @@ def build_graph(bundle, store, saver, max_refreshes):
         }
 
     def route(state):
-        if 190 <= state["result"]["peak_surplus_mwh"] <= 200:
+        if is_boundary(state["result"]["peak_ratio"]):
             if state["refresh_count"] < max_refreshes:
                 return "refresh"
+        return "normal" if state["result"]["risk"] == "NORMAL" else "allocate"
+
+    def intraday_check(state):
+        """하루 전이 정상이던 날의 당일 점검: 초단기실황·초단기예보로 다시 판정한다."""
+        request = AnalysisRequest.model_validate(state["request"])
+        check_no = max(state.get("check_no", 1), 1)
+        inputs = None
+        if request.mode == "demo":
+            generation = demo.intraday_generation(request.date, request.scenario, check_no)
+            result = evaluate(generation, demo.demand(request.date), request.date)
+            sources = {
+                "weather": {"source": "demo", "simulated": True},
+                "generation": {"source": "demo_scenario", "simulated": True, "model": "fixture"},
+                "demand": {"source": "demo", "simulated": True},
+            }
+        else:
+            out = bundle.intraday_check(request, bundle.now())
+            result, inputs = out["result"], out["inputs"]
+            sources = {
+                "weather": {
+                    "source": "kma_ultra_short",
+                    "simulated": False,
+                    "irradiance": "estimated",
+                    "day_ahead_base": inputs["day_ahead_base"],
+                },
+                "generation": {
+                    "source": "prediction",
+                    "simulated": False,
+                    "model": "xgboost_jeju_total",
+                    "validated": False,
+                },
+                "demand": {
+                    "source": "demand_model",
+                    "simulated": False,
+                    "model": "xgboost_jeju_demand",
+                    "validated": False,
+                },
+            }
+        bundle.log_evaluation(state["id"], "intraday", check_no, result, inputs)
+        meta = {"check_no": check_no}
+        if inputs:
+            meta.update(
+                checked_at=inputs["checked_at"],
+                from_hour=inputs["from_hour"],
+                day_ahead_base=inputs["day_ahead_base"],
+                hour_sources=inputs["sources"],
+            )
+        return {
+            "result": result,
+            "boundary_unresolved": False,
+            "sources": {**state["sources"], **sources},
+            "intraday": meta,
+            "evaluations": state["evaluations"]
+            + [
+                {
+                    "refresh_count": 0,
+                    "peak_surplus_mwh": result["peak_surplus_mwh"],
+                    "peak_ratio": result["peak_ratio"],
+                    "risk": result["risk"],
+                    "sources": sources,
+                }
+            ],
+            "trace": state["trace"] + [f"INTRADAY:check{check_no}"],
+        }
+
+    def entry(state):
+        return "intraday_check" if state["request"].get("phase") == "intraday" else "weather"
+
+    def route_intraday(state):
         return "normal" if state["result"]["risk"] == "NORMAL" else "allocate"
 
     def refresh(state):
@@ -74,16 +149,35 @@ def build_graph(bundle, store, saver, max_refreshes):
         }
 
     def allocation(state):
-        return {
-            "allocation": allocate(state["result"]["peak_surplus_mwh"]),
-            "trace": state["trace"] + ["R6:allocation"],
-        }
+        result = state["result"]
+        ev = bundle.ev_allocation_input(result["peak_hour"], date.fromisoformat(result["date"]))
+        plan = allocate(
+            result["peak_surplus_mwh"], Capacities(ev=ev["capacity_mwh"]) if ev else None
+        )
+        if ev:
+            # EV 용량만 허브 데이터 기반이다. 나머지 자원은 여전히 가정이다.
+            plan["availability_source"] = (
+                "jejudatahub_ev_stations+history"
+                if ev["basis"] == "history_profile"
+                else "jejudatahub_ev_stations+assumptions"
+            )
+            plan["ev_basis"] = ev
+        return {"allocation": plan, "trace": state["trace"] + ["R6:allocation"]}
 
     def draft(state):
+        cfg = bundle.settings
+        key = cfg.anthropic_api_key.get_secret_value() if cfg.anthropic_api_key else None
+        text, source = draft_with_llm(
+            state["result"],
+            state["allocation"],
+            api_key=key,
+            model=cfg.llm_model,
+            timeout=cfg.llm_timeout,
+        )
         return {
-            "draft": draft_notification(state["result"], state["allocation"]),
+            "draft": text,
             "status": "awaiting_approval",
-            "trace": state["trace"] + ["R7:draft"],
+            "trace": state["trace"] + [f"R7:draft:{source}"],
         }
 
     def approval(state):
@@ -107,18 +201,24 @@ def build_graph(bundle, store, saver, max_refreshes):
         ("demand", demand),
         ("risk", risk),
         ("refresh", refresh),
+        ("intraday_check", intraday_check),
         ("allocate", allocation),
         ("draft", draft),
         ("approval", approval),
         ("normal", normal),
     ):
         graph.add_node(name, fn)
-    graph.add_edge(START, "weather")
+    graph.add_conditional_edges(
+        START, entry, {"weather": "weather", "intraday_check": "intraday_check"}
+    )
     graph.add_edge("weather", "prediction")
     graph.add_edge("prediction", "demand")
     graph.add_edge("demand", "risk")
     graph.add_conditional_edges("risk", route, {n: n for n in ("refresh", "normal", "allocate")})
     graph.add_edge("refresh", "weather")
+    graph.add_conditional_edges(
+        "intraday_check", route_intraday, {"normal": "normal", "allocate": "allocate"}
+    )
     graph.add_edge("allocate", "draft")
     graph.add_edge("draft", "approval")
     graph.add_edge("approval", END)

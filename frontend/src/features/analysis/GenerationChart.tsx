@@ -101,7 +101,7 @@ export function GenerationChart({
           <span
             key={row.hour}
             className={`risk-cell risk-cell--${row.risk.toLowerCase()}`}
-            title={`${row.hour}시 ${row.risk} · 잉여 ${row.surplus_mwh} MWh`}
+            title={`${row.hour}시 ${row.risk} · 발전/수요 ${(row.ratio * 100).toFixed(0)}% · 잉여 ${row.surplus_mwh.toFixed(1)} MWh`}
           />
         ))}
       </div>
@@ -120,6 +120,7 @@ export function GenerationChart({
                 <th>시간</th>
                 <th>발전량</th>
                 <th>수요</th>
+                <th>발전/수요</th>
                 <th>잉여전력</th>
                 <th>위험도</th>
               </tr>
@@ -130,6 +131,7 @@ export function GenerationChart({
                   <td>{row.hour}:00</td>
                   <td>{row.generation_mwh.toFixed(1)}</td>
                   <td>{row.demand_mwh.toFixed(1)}</td>
+                  <td>{(row.ratio * 100).toFixed(0)}%</td>
                   <td>{row.surplus_mwh.toFixed(1)}</td>
                   <td>{row.risk}</td>
                 </tr>

@@ -15,5 +15,8 @@ class AgentState(TypedDict, total=False):
     draft: str
     decision: dict
     boundary_unresolved: bool
+    phase: str
+    check_no: int
+    intraday: dict
     evaluations: list[dict]
     trace: list[str]
