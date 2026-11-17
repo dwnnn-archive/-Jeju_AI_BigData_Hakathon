@@ -10,11 +10,14 @@ FastAPI/LangGraph 백엔드와 React/TypeScript 프론트엔드로 구성한 출
 
 | 항목 | 내용 |
 |---|---|
-| 필수 활용 데이터 | **제주데이터허브 「전기자동차 충전소 정보」(No.494, API)** → 배분 권고의 **EV 흡수 용량** 계산 |
+| 필수 활용 데이터 | **제주데이터허브** 「전기자동차 충전소 정보」(No.494, API)와 **충전 이력(월별·요일별)** → 배분 권고의 **EV 흡수 용량**(충전기 실측 전력·점유율) 계산 |
 | 허브 교차검증 | **일별 기상 정보(No.756)** 로 기상청 ASOS를 검증하고 수요 모델 입력 기온을 비교 ([결과](docs/guides/hub-weather-check.md)) |
 | 보조 데이터 | KPX 발전량·수요·출력제한 이력, 기상청 단기·초단기예보·ASOS (외부 데이터) |
 | 기획서 | [docs/submission/01-AI-Agent-기획서.md](docs/submission/01-AI-Agent-기획서.md) |
 | 데이터 활용 명세 | [docs/submission/02-데이터-활용-명세.md](docs/submission/02-데이터-활용-명세.md) |
+| 매뉴얼 | [docs/submission/04-매뉴얼.md](docs/submission/04-매뉴얼.md) (설치·실행·재현) |
+| 결과 설명 | [docs/submission/05-결과-설명.md](docs/submission/05-결과-설명.md) |
+| LLM 초안 예시 | [docs/submission/03-LLM-초안-예시.md](docs/submission/03-LLM-초안-예시.md) |
 
 대회 제공 파일(데이터 목록·예시 데이터 엑셀)은 외부 배포가 금지되어 저장소에 넣지 않으며 `.gitignore`가 `*.xlsx`를 제외합니다. 허브에서 수집한 충전소 목록(`backend/runtime/ev_stations.json`)도 `runtime/` 아래라 Git에 올라가지 않습니다.
 
