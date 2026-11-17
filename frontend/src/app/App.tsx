@@ -35,7 +35,7 @@ const steps = [
     id: "forecast",
     label: "발전량 예측",
     short: "예측",
-    headline: "발전량 예측.",
+    headline: "발전량 예측",
     description:
       "다음날 시간별 발전량과 수요를 비교해 대응이 필요한 시간을 찾습니다.",
   },
@@ -43,7 +43,7 @@ const steps = [
     id: "allocation",
     label: "자원 배분",
     short: "배분",
-    headline: "자원 배분.",
+    headline: "자원 배분",
     description:
       "피크 1시간의 잉여전력을 어떤 자원에 얼마나 흡수시킬지 권고합니다.",
   },
@@ -51,7 +51,7 @@ const steps = [
     id: "approval",
     label: "승인 관리",
     short: "검토·승인",
-    headline: "검토와 결정.",
+    headline: "검토와 결정",
     description: "이 분석 결과에 대해 담당자가 시연 승인 또는 반려를 남깁니다.",
   },
 ] as const;
@@ -299,7 +299,7 @@ export function App() {
                   : "분석 기록 · 한국 표준시 KST"}
               </p>
               <h1 className="dv-hero dv-hero--md">
-                {activeStep ? activeStep.headline : "분석 이력."}
+                {activeStep ? activeStep.headline : "분석 이력"}
               </h1>
               <p className="dv-lead">
                 {activeStep

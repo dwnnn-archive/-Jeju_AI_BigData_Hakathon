@@ -212,7 +212,7 @@ function AfterView({
 
       <section className="dv-band" aria-labelledby="dv-flow-title">
         <div className="dv-band-head">
-          <h2 id="dv-flow-title">하루의 전력 흐름.</h2>
+          <h2 id="dv-flow-title">하루의 전력 흐름</h2>
           <div className="dv-legend" aria-hidden="true">
             <span className="dv-legend-gen">발전량</span>
             <span className="dv-legend-dem">수요 · 점선</span>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { AnalysisRun, Transport } from "../features/analysis/types";
 import { regions } from "../features/analysis/AnalysisForm";
+import { HeroTurbines } from "../components/HeroTurbines";
 
 export type LandingTarget =
   "dashboard" | "forecast" | "allocation" | "approval" | "history";
@@ -122,6 +123,7 @@ export function LandingPage({
       aria-label="서비스 소개"
     >
       <div className="hero">
+        <HeroTurbines />
         <div className="hero-bg" aria-hidden="true" />
 
         <nav className="hero-dots" aria-label="소개 슬라이드">
