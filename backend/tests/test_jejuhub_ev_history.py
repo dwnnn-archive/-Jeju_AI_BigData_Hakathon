@@ -238,3 +238,48 @@ def test_same_charger_number_at_different_stations_counts_as_separate_chargers()
     b = {"evChargingStationId": "S2", "evChargerId": "1"}
     assert charger_key(a) != charger_key(b)
     assert charger_key(a) == charger_key({**a, "chargingCount": 5})
+
+
+def _daily_row(day, station, charger, kwh, n=1):
+    return {
+        "baseDate": day,
+        "evChargingStationId": station,
+        "evChargerId": charger,
+        "chargingAmount": kwh,
+        "chargingCount": n,
+    }
+
+
+def test_month_range_handles_month_length_and_leap_year():
+    from app.providers.jejuhub_ev_history import month_range
+
+    assert month_range("202104") == {"startDate": "20210401", "endDate": "20210430"}
+    assert month_range("202402")["endDate"] == "20240229"
+
+
+def test_daily_summary_variation_weekdays_and_monthly_check():
+    from app.providers.jejuhub_ev_history import daily_summary
+
+    rows = []
+    # 04-05(월)·06(화)는 100 kWh, 04-10(토)·11(일)은 50 kWh.
+    # 같은 번호(1)의 충전기가 서로 다른 충전소에 있다.
+    for day, kwh in (("20210405", 100), ("20210406", 100), ("20210410", 50), ("20210411", 50)):
+        rows.append(_daily_row(day, "S1", "1", kwh / 2, 2))
+        rows.append(_daily_row(day, "S2", "1", kwh / 2, 2))
+    rows.append({"baseDate": "bad", "chargingAmount": 1, "chargingCount": 1})  # 제외
+    monthly = [{"chargingAmount": 300, "chargingCount": 16}]
+    s = daily_summary(rows, monthly)
+    assert s["days"] == 4 and s["rows_skipped"] == 1
+    assert s["mean_kwh_per_day"] == pytest.approx(75)
+    assert s["max_ratio"] == pytest.approx(100 / 75) and s["min_ratio"] == pytest.approx(50 / 75)
+    assert s["weekend_over_weekday"] == pytest.approx(0.5)
+    assert s["mean_active_chargers_per_day"] == 2  # 같은 번호라도 충전소가 다르면 2기
+    assert s["vs_monthly"]["kwh_diff_pct"] == pytest.approx(0)
+    assert s["vs_monthly"]["count_diff_pct"] == pytest.approx(0)
+
+
+def test_daily_summary_rejects_empty():
+    from app.providers.jejuhub_ev_history import daily_summary
+
+    with pytest.raises(ValueError):
+        daily_summary([{"baseDate": "x"}])

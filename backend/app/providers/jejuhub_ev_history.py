@@ -3,7 +3,8 @@
 가이드 기준(2021-01 ~ 2022-06 등 과거 이력, 운영기관 환경부·제주특별자치도 충전기).
 - 월별: 충전기 x 월 x **충전 시작 시각** 별 충전 횟수·충전 시간(HH:MM:SS)·충전량(kWh).
 - 요일별: 충전기 x 월 x 요일 별 같은 항목. 시간대 정보는 없다.
-- 일별: 충전기 x 일 별. 시간·요일 정보가 없어 이 모듈에서는 쓰지 않는다.
+- 일별: 충전기 x 일 별. 시간·요일 정보가 없어 이용 패턴(점유율)에는 쓰지 않고,
+  daily_summary()로 날짜별 변동과 월별 합계 정합성 확인에만 쓴다.
 
 여기서 두 가지를 얻는다.
 1. 충전기가 실제로 낸 평균 전력(kW) = 충전량 / 충전 시간. 정격 가정을 대체한다.
@@ -25,6 +26,7 @@ from app.providers.jejuhub_ev import _get_page
 HUB = "https://open.jejudatahub.net/api/proxy"
 MONTHLY_URL = f"{HUB}/DD96616t226D16at11ta92D6DD19DttD"
 WEEKDAY_URL = f"{HUB}/71111t11a161tb1Da611Daab2a91912a"
+DAILY_URL = f"{HUB}/btb8a6DD29t622tab1ta2t68Db1a682a"
 WEEKDAYS = "월화수목금토일"  # date.weekday() 0=월
 MAX_PAGES = 400
 SPREAD_STEPS = 12
@@ -196,3 +198,80 @@ def load_profile(path: Path) -> dict | None:
         return body
     except (OSError, ValueError, KeyError, TypeError):
         return None
+
+
+def month_range(month: str) -> dict:
+    """'YYYYMM'을 일별 API의 조회 구간(startDate, endDate = YYYYMMDD)으로 바꾼다."""
+    last = calendar.monthrange(int(month[:4]), int(month[4:]))[1]
+    return {"startDate": f"{month}01", "endDate": f"{month}{last:02d}"}
+
+
+def _percentile(sorted_values: list[float], q: float) -> float:
+    return sorted_values[min(len(sorted_values) - 1, int(q * len(sorted_values)))]
+
+
+def daily_summary(daily: list[dict], monthly: list[dict] | None = None) -> dict:
+    """일별 이력으로 날짜별 변동을 요약하고, 월별 이력과 합계가 맞는지 확인한다.
+
+    - 날짜별 총 충전량(kWh)·충전 횟수·충전 중인 충전기 수.
+    - 혼잡한 날이 평균의 몇 배인가(p95, 최대), 달력 요일별 평균과 주말/평일 비율.
+    - monthly를 주면 같은 달의 충전량·횟수 합계를 비교한다(데이터 정합성).
+    """
+    days: dict[str, dict] = {}
+    skipped = 0
+    for r in daily:
+        try:
+            day = str(r["baseDate"])
+            kwh = float(r["chargingAmount"])
+            n = int(r["chargingCount"])
+            date(int(day[:4]), int(day[4:6]), int(day[6:8]))
+        except (KeyError, TypeError, ValueError):
+            skipped += 1
+            continue
+        if kwh < 0 or n < 0:
+            skipped += 1
+            continue
+        d = days.setdefault(day, {"kwh": 0.0, "count": 0, "chargers": set()})
+        d["kwh"] += kwh
+        d["count"] += n
+        d["chargers"].add(charger_key(r))
+    if not days:
+        raise ValueError("no usable daily rows")
+    kwh_sorted = sorted(d["kwh"] for d in days.values())
+    mean = sum(kwh_sorted) / len(kwh_sorted)
+    by_weekday: dict[str, list[float]] = {w: [] for w in WEEKDAYS}
+    for day, d in days.items():
+        wd = WEEKDAYS[date(int(day[:4]), int(day[4:6]), int(day[6:8])).weekday()]
+        by_weekday[wd].append(d["kwh"])
+    wd_mean = {w: sum(v) / len(v) for w, v in by_weekday.items() if v}
+    weekday_avg = [wd_mean[w] for w in "월화수목금" if w in wd_mean]
+    weekend_avg = [wd_mean[w] for w in "토일" if w in wd_mean]
+    out = {
+        "days": len(days),
+        "rows_skipped": skipped,
+        "mean_kwh_per_day": mean,
+        "p95_ratio": _percentile(kwh_sorted, 0.95) / mean,
+        "max_ratio": kwh_sorted[-1] / mean,
+        "min_ratio": kwh_sorted[0] / mean,
+        "mean_active_chargers_per_day": sum(len(d["chargers"]) for d in days.values()) / len(days),
+        "weekday_mean_kwh": wd_mean,
+        "weekend_over_weekday": (
+            (sum(weekend_avg) / len(weekend_avg)) / (sum(weekday_avg) / len(weekday_avg))
+            if weekend_avg and weekday_avg
+            else None
+        ),
+    }
+    if monthly is not None:
+        m_kwh = sum(float(r.get("chargingAmount") or 0) for r in monthly)
+        m_count = sum(int(r.get("chargingCount") or 0) for r in monthly)
+        d_kwh = sum(d["kwh"] for d in days.values())
+        d_count = sum(d["count"] for d in days.values())
+        out["vs_monthly"] = {
+            "kwh_daily": d_kwh,
+            "kwh_monthly": m_kwh,
+            "kwh_diff_pct": (d_kwh - m_kwh) / m_kwh * 100 if m_kwh else None,
+            "count_daily": d_count,
+            "count_monthly": m_count,
+            "count_diff_pct": (d_count - m_count) / m_count * 100 if m_count else None,
+        }
+    return out
