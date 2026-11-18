@@ -1,5 +1,7 @@
 import type { AnalysisRun } from "../features/analysis/types";
 import { labels, phaseLabel } from "../features/analysis/state";
+import { RunConditions } from "../features/analysis/RunConditions";
+import { WorkdayTimeline } from "../features/analysis/WorkdayTimeline";
 import {
   FlowChart,
   RiskStrip,
@@ -40,6 +42,7 @@ export function ForecastPage({
   const peak = `${pad(result.peak_hour)}:00–${pad((result.peak_hour + 1) % 24)}:00`;
   return (
     <>
+      <RunConditions run={run} />
       <p className="dv-caption">
         {phaseLabel(run.phase ?? run.request.phase, run.check_no)}
         {result.from_hour != null ? ` · ${result.from_hour}시 이후 판정` : ""}
@@ -93,6 +96,18 @@ export function ForecastPage({
           {run.simulation
             ? "시연 데이터 기준 · 실제 예측값이 아닙니다. 예측값은 현장 운영 검증과 실제 조치 승인을 대신하지 않습니다."
             : "외부 데이터 기준 · 운영 검증 전 값입니다."}
+        </p>
+      </section>
+
+      <section className="ed-workday" aria-labelledby="workday-title">
+        <h3 id="workday-title" className="ed-subhead">
+          담당자 하루 업무 흐름
+        </h3>
+        <WorkdayTimeline run={run} />
+        <p className="dv-caption">
+          전날 17:30 하루 전 분석은 자동으로 실행됩니다. 당일 점검은 하루 전
+          판정이 정상인 날에만, 하루 최대 2회 요청할 수 있습니다. 화면의 표시는
+          지금 보고 있는 분석의 위치이며 다른 날의 진행을 뜻하지 않습니다.
         </p>
       </section>
 

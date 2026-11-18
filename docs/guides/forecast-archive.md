@@ -28,9 +28,9 @@
 ```bash
 cd backend   # backend/.env 에 KMA_API_KEY 필요
 python -m scripts.forecast_archive collect                          # 현재 예보를 받아 저장(두 격자 x 3출처)
-python -m scripts.collect_asos 2026-11 2026-11 runtime/asos         # ASOS 실측(전일 자료까지)
-python -m scripts.forecast_archive export runtime/asos runtime/forecast_dataset.csv   # 실측과 맞춘 학습용 표
-python -m scripts.forecast_archive report runtime/asos              # 예보가 실제로 얼마나 틀렸는지
+python -m scripts.collect_asos 2026-11 2026-11 runtime/asos_recent  # ASOS 실측(어제까지). 학습용 runtime/asos 와 폴더를 분리한다(병합 파일을 덮어쓰므로)
+python -m scripts.forecast_archive export runtime/asos_recent runtime/forecast_dataset.csv   # 실측과 맞춘 학습용 표
+python -m scripts.forecast_archive report runtime/asos_recent       # 예보가 실제로 얼마나 틀렸는지
 ```
 
 ### Windows 작업 스케줄러로 자동 수집
@@ -47,6 +47,41 @@ Start-ScheduledTask -TaskName JejuForecastArchive-Collect                       
 - **초단기실황은 따라잡을 수 없다.** 기상청이 최근 1일만 주고, 실행 때마다 최신 한 건만 받는다. 3시간 간격이라 실황은 3시간에 한 건씩만 쌓인다(실측 비교는 ASOS로 한다).
 - 72시간 넘게 PC가 꺼져 있으면 그 사이 발표는 복구할 수 없다.
 - 서버 PC가 아닌 개발 PC에 걸어 둔 것이다. 장기 운영은 항상 켜진 서버로 옮기는 것이 안전하다.
+
+### ASOS 실측도 자동 수집 (하루 한 번)
+
+예보 오차를 재려면 같은 시각의 실측이 있어야 한다. 실측(ASOS)은 **전일 자료까지만** 받을 수 있어서 하루 한 번이면 충분하다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File backend\scripts\register_asos_task.ps1          # 등록
+powershell -ExecutionPolicy Bypass -File backend\scripts\register_asos_task.ps1 -Remove  # 해제
+python -m scripts.collect_asos recent runtime/asos_recent                                  # 손으로 한 번 실행
+```
+
+- 작업 이름 `JejuForecastArchive-ASOS`, 매일 03:30. 같은 로그 `backend\runtime\collect.log` 에 `asos start/end exit=` 로 남는다.
+- **어제가 속한 달과 그 전 달**을 `runtime/asos_recent` 에 받는다. 끝나지 않은 달은 어제까지만 받고 매번 다시 받는다. 월말에 받은 파일이 끝부분이 비어 있으면(마지막 날까지 안 담김) 다음 실행에서 다시 받는다.
+- 학습용 폴더 `runtime/asos` 는 건드리지 않는다. (병합 파일을 덮어쓰기 때문에 폴더를 분리했다.)
+- PC가 꺼져 있었으면 켜졌을 때 따라잡아 실행한다. 월 단위로 다시 받으므로 며칠 비어도 채워진다.
+- 하루 호출 수는 4개 지점 x 2개 달 = 8번이다.
+
+### 하루 전 분석을 매일 자동으로 (판정 기록 쌓기)
+
+`evaluations`(판정 기록)는 분석을 돌릴 때만 쌓인다. 매일 17:30에 내일 대상 하루 전 분석을 한 번 돌린다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File backend\scripts\register_day_ahead_task.ps1          # 등록
+powershell -ExecutionPolicy Bypass -File backend\scripts\register_day_ahead_task.ps1 -Remove  # 해제
+python -m scripts.run_day_ahead                                                    # 손으로 한 번 실행
+```
+
+- 작업 이름 `JejuDayAhead-Analysis`. 서버를 따로 켜지 않는다(앱을 프로세스 안에서 띄워 1건 돌리고 끝난다). 로그는 `backend\runtime\collect.log` 의 `day-ahead start/end exit=`.
+- 17:30은 17시 발표 단기예보가 들어온 직후라서 정했다. KPX 전망의 게시 시각은 확인하지 못해 이 시각을 그것과 맞춘 것이라고 말하지 않는다.
+- 대상은 실행 시점의 **내일**이다(오늘 날짜는 지난 시간대 예보가 없어 돌릴 수 없다). **17:15~23:50 밖이면 건너뛴다.** PC가 꺼져 있다 늦게 켜져 따라잡기로 실행되면 "내일"이 엉뚱한 날이 되기 때문이다. 건너뛴 날의 판정 기록은 복구되지 않는다.
+- 같은 날짜는 같은 멱등 키를 써서 두 번 호출해도 기록이 한 건이다. 앞선 시도가 실패로 끝났으면 키를 바꿔 한 번 다시 시도한다.
+- 모델 경로 설정이 없으면 `runtime/models/jeju`, `runtime/models/demand` 를 쓴다(있을 때만). 이 경로가 없으면 live 분석이 실패한다.
+- live 모드에서 위험이면 **승인 대기 건이 매일 남는다.** 이 스크립트는 승인하지 않고, live 에서는 승인과 발송이 막혀 있다.
+- 통보문 초안을 위해 ANTHROPIC_API_KEY 가 있으면 판정 결과가 LLM 으로 전송된다.
+- 이 기록의 정답(KPX 실적)은 분기마다 공개되므로 맞았는지는 바로 평가할 수 없다. KPX가 공개하는 전망이 있다면 비교 기준선이 될 수 있다(공개 시각·형식은 확인하지 못했다).
 
 ## ML 개선에 쓰는 방법
 

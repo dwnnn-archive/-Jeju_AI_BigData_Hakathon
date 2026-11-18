@@ -8,6 +8,7 @@ import "./styles/components.css";
 import "./features/analysis/analysis.css";
 import "./features/allocation/allocation.css";
 import "./features/approval/approval.css";
+import "./features/chat/chat.css";
 import "./styles/dashboard.css";
 import "./styles/editorial.css";
 import "./styles/landing.css";

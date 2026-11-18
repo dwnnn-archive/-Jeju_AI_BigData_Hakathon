@@ -9,10 +9,12 @@ import {
   LogOut,
   Settings2,
   RefreshCw,
+  SunMedium,
 } from "lucide-react";
 import { createApi } from "../api/client";
 import { useAnalysis } from "../features/analysis/useAnalysis";
-import { AnalysisForm, regions } from "../features/analysis/AnalysisForm";
+import { AnalysisForm } from "../features/analysis/AnalysisForm";
+import { canIntradayCheck } from "../features/analysis/state";
 import type {
   AnalysisRequest,
   AnalysisSummary,
@@ -27,6 +29,7 @@ import { LoginPage, type Session } from "../pages/LoginPage";
 import { AllocationPanel } from "../features/allocation/AllocationPanel";
 import { ApprovalPanel } from "../features/approval/ApprovalPanel";
 import { HistoryPanel } from "../features/history/HistoryPanel";
+import { ChatPanel } from "../features/chat/ChatPanel";
 
 type Step = "forecast" | "allocation" | "approval";
 type Page = "landing" | "login" | "dashboard" | Step | "history";
@@ -45,14 +48,15 @@ const steps = [
     short: "배분",
     headline: "자원 배분",
     description:
-      "피크 1시간의 잉여전력을 어떤 자원에 얼마나 흡수시킬지 권고합니다.",
+      "피크 1시간의 잉여전력을 어떤 자원에 얼마나 흡수할 수 있는지 참고용 대응 후보로 제안합니다.",
   },
   {
     id: "approval",
-    label: "승인 관리",
-    short: "검토·승인",
-    headline: "검토와 결정",
-    description: "이 분석 결과에 대해 담당자가 시연 승인 또는 반려를 남깁니다.",
+    label: "통보문 확인",
+    short: "통보문",
+    headline: "통보문 확인",
+    description:
+      "AI가 만든 통보문 초안을 담당자가 확인하고, 발송 여부를 정합니다.",
   },
 ] as const;
 const nav = [
@@ -130,6 +134,12 @@ export function App() {
         run?.status || "queued",
       )),
   );
+  const intradayReady = canIntradayCheck(run, transport);
+  function requestIntraday() {
+    if (!run) return;
+    setFormError("");
+    void analysis.submit({ ...run.request, phase: "intraday" });
+  }
   const loadHistory = useCallback(async () => {
     const sequence = ++historySequence.current;
     setHistoryBusy(true);
@@ -322,6 +332,14 @@ export function App() {
                     {formError}
                   </p>
                 )}
+                {form.mode === "demo" &&
+                  form.scenario === "intraday_escalation" && (
+                    <p className="dv-caption">
+                      대상일이 오늘로 맞춰집니다. 분석 요청으로 하루 전
+                      계획(정상)을 만든 뒤 <strong>당일 점검 요청</strong>을
+                      눌러 1차(정상), 2차(위험) 점검을 차례로 확인하세요.
+                    </p>
+                  )}
                 <p className="ed-mode">
                   <strong>
                     {form.mode === "demo"
@@ -339,6 +357,16 @@ export function App() {
                   서버 마지막 확인{" "}
                   <strong>{formatTime(analysis.lastConfirmed)}</strong>
                 </span>
+                {intradayReady && (
+                  <Button
+                    variant="secondary"
+                    disabled={unresolved || transport === "sending"}
+                    onClick={requestIntraday}
+                  >
+                    <SunMedium size={14} aria-hidden="true" />
+                    당일 점검 요청
+                  </Button>
+                )}
                 {active && (
                   <Button
                     variant="ghost"
@@ -366,18 +394,6 @@ export function App() {
                       </Button>
                     </>
                   )}
-                </div>
-              )}
-              {run && (
-                <div className="result-context">
-                  <span>
-                    표시된 결과의 대상:{" "}
-                    <strong>
-                      {run.request.date} · {regions[run.request.region]}
-                    </strong>{" "}
-                    · {run.simulation ? "시연 데이터" : "외부 데이터"}
-                  </span>
-                  <span className="mono">ID {run.id.slice(0, 8)}</span>
                 </div>
               )}
               {!matches && (
@@ -437,6 +453,7 @@ export function App() {
               onSelect={openItem}
             />
           )}
+          {activeStep && <ChatPanel run={run} ask={api.chat} />}
           {run?.sources &&
             Object.keys(run.sources).length > 0 &&
             activeStep && (

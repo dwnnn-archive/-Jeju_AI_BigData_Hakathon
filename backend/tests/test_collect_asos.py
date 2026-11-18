@@ -36,3 +36,63 @@ def test_merge_orders_months_and_skips_missing_ones(tmp_path):
     got = list(csv.reader((tmp_path / "asos_gosan.csv").open(encoding="utf-8")))[1:]
     assert [r[0][:10] for r in got] == ["2024-01-01", "2024-02-01"]
     assert (tmp_path / "asos_jeju.csv").read_text(encoding="utf-8").strip() == ",".join(FIELDS)
+
+
+def test_collect_current_month_stops_at_yesterday_and_refetches(tmp_path, monkeypatch):
+    from datetime import timedelta
+
+    import pytest
+    from pydantic import SecretStr
+
+    from scripts import collect_asos
+
+    today = datetime.now(KST)
+    if today.day == 1:
+        pytest.skip("on the 1st the current month has no finished day yet")
+    calls = []
+
+    class FakeProvider:
+        def __init__(self, key, client):
+            pass
+
+        def fetch(self, stn, first, last):
+            calls.append((first, last))
+            return [AsosHour(first, stn, 1.0, 2.0, None, None)]
+
+    class FakeSettings:
+        asos_api_key = SecretStr("k")
+
+    monkeypatch.setattr(collect_asos, "AsosProvider", FakeProvider)
+    monkeypatch.setattr(collect_asos, "Settings", FakeSettings)
+    monkeypatch.setattr(collect_asos, "JEJU_STATIONS", {"gosan": 185})
+    monkeypatch.setattr(collect_asos.time, "sleep", lambda s: None)
+    ym = f"{today.year}-{today.month:02d}"
+
+    collect_asos.collect(ym, ym, tmp_path, pause=0)
+    collect_asos.collect(ym, ym, tmp_path, pause=0)  # unfinished month is fetched again
+
+    assert len(calls) == 2
+    yesterday = (today - timedelta(days=1)).date()
+    assert all(last.date() == yesterday and last.hour == 23 for _, last in calls)
+
+
+def test_covers_month_detects_unfinished_month_file(tmp_path):
+    from scripts.collect_asos import covers_month
+
+    path = tmp_path / "185_2026-10.csv"
+    last = datetime(2026, 10, 31, 23, tzinfo=KST)
+    rows = [AsosHour(datetime(2026, 10, 30, 23, tzinfo=KST), 185, 1.0, 2.0, None, None)]
+    write_rows(path, rows)
+    assert not covers_month(path, last)  # ends on the 30th: month was unfinished when saved
+    end = AsosHour(datetime(2026, 10, 31, 22, tzinfo=KST), 185, 1.0, 2.0, None, None)
+    write_rows(path, [*rows, end])
+    assert covers_month(path, last)
+    assert not covers_month(tmp_path / "missing.csv", last)
+
+
+def test_recent_range_includes_previous_month_at_month_start():
+    from scripts.collect_asos import recent_range
+
+    assert recent_range(datetime(2026, 12, 1, 3, tzinfo=KST)) == ("2026-10", "2026-11")
+    assert recent_range(datetime(2026, 12, 2, 3, tzinfo=KST)) == ("2026-11", "2026-12")
+    assert recent_range(datetime(2027, 1, 2, 3, tzinfo=KST)) == ("2026-12", "2027-01")

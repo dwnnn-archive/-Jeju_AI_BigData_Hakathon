@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import sqlite3
 import threading
 from datetime import datetime
@@ -13,7 +14,14 @@ from app.domain.schemas import AnalysisRequest, Decision
 from app.providers.kma import KST
 from app.repositories.jobs import JobRepository, iso_now, utcnow
 from app.services.analysis import AnalysisService, ConflictError
+from app.tools import chat_agent
 from app.tools.tool1_kma_weather import parse_request
+
+logger = logging.getLogger(__name__)
+SCOPE_HINT = (
+    "이 분석 결과(위험 판정, 시간별 예측, 자원 배분, 충전소, 데이터 출처, 검토 상태)에 대한 질문에 "
+    "답할 수 있습니다. 예: '12시 발전량과 수요는 얼마인가요?'"
+)
 
 
 def result_token(snapshot):
@@ -38,6 +46,7 @@ class JobService:
         self.stop = threading.Event()
         self.runner = None
         self.worker_error = None
+        self.chat_client = None  # 테스트에서 모의 클라이언트를 넣는다
 
     def submit(self, request, key):
         key = str(UUID(key))
@@ -276,28 +285,48 @@ class JobService:
             ]
 
     def chat(self, run_id, message):
+        """질문에 답한다. LLM이 읽기 전용 도구를 골라 답하고, 쓸 수 없으면 키워드 답변을 쓴다."""
         run = self.get(run_id)
-        if any(word in message for word in ("승인", "발송", "반려")):
-            answer = "상태 변경은 담당자 인증 후 승인 API를 사용하세요."
-        elif not run["result"]:
-            answer = "아직 확인된 계산 결과가 없습니다."
-        elif any(word in message for word in ("수소", "배분", "흡수")) and run["allocation"]:
-            answer = (
-                f"피크 1시간 수소 환산 {run['allocation']['hydrogen_kg']:.2f} kg. "
-                "시연 추정치입니다."
+        key = self.settings.anthropic_api_key
+        try:
+            found = chat_agent.ask(
+                run,
+                message,
+                api_key=key.get_secret_value() if key else None,
+                model=self.settings.llm_model,
+                timeout=self.settings.llm_timeout,
+                client=self.chat_client,
             )
-        else:
+            answer, mode, reason, used = found["answer"], "llm", None, found["tools_used"]
+        except chat_agent.ChatFailure as failure:
+            logger.info("chat fallback to rules: %s", failure.reason)
             answer = (
-                f"{run['result']['date']} 피크 잉여전력 "
-                f"{run['result']['peak_surplus_mwh']:.2f} MWh."
+                SCOPE_HINT if failure.reason == "no_tool_used" else self._rule_answer(run, message)
             )
+            mode, reason, used = "rules", failure.reason, []
         return {
             "analysis_id": run_id,
             "answer": answer,
+            "mode": mode,
+            "mode_reason": reason,
+            "tools_used": used,
             "status": run["status"],
             "sources": run["sources"],
             "notification": run["notification"],
         }
+
+    @staticmethod
+    def _rule_answer(run, message):
+        if any(word in message for word in ("승인", "발송", "반려")):
+            return "상태 변경은 담당자 인증 후 승인 API를 사용하세요."
+        if not run["result"]:
+            return "아직 확인된 계산 결과가 없습니다."
+        if any(word in message for word in ("수소", "배분", "흡수")) and run["allocation"]:
+            return (
+                f"피크 1시간 수소 환산 {run['allocation']['hydrogen_kg']:.2f} kg. "
+                "시연 추정치입니다."
+            )
+        return f"{run['result']['date']} 피크 잉여전력 {run['result']['peak_surplus_mwh']:.2f} MWh."
 
     def close(self):
         self.stop.set()

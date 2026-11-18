@@ -79,5 +79,8 @@ it("labels history-based capacity and hides the table without hub data", () => {
 
   rerender(<AllocationPanel run={base} />);
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
-  expect(screen.getAllByText("시연 가용량 기준")).toHaveLength(4);
+  expect(screen.getAllByText("시연 가용량 기준")).toHaveLength(1);
+  expect(screen.getByText("자료 기반")).toBeInTheDocument();
+  expect(screen.getByText("가정값")).toBeInTheDocument();
+  expect(screen.getByText("보도 기준")).toBeInTheDocument();
 });

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ShieldCheck, Send } from "lucide-react";
+import { ShieldCheck, Send, Copy } from "lucide-react";
 import { DraftView } from "./DraftView";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { blockLabels, canReview } from "../analysis/state";
+import { conditionFacts } from "../analysis/RunConditions";
 import type { AnalysisRun, Transport } from "../analysis/types";
 
 type Props = {
@@ -38,6 +39,7 @@ export function ApprovalPanel({
   const approver = session?.token ?? typedApprover;
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const [reviewed, setReviewed] = useState<AnalysisRun | null>(null);
   const sameResult = Boolean(
     reviewed &&
@@ -83,6 +85,16 @@ export function ApprovalPanel({
       );
     }
   }
+  async function copyDraft() {
+    if (!run?.draft) return;
+    try {
+      await navigator.clipboard.writeText(run.draft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
   function open(value: "approve" | "reject") {
     setReviewed(run);
     setAction(value);
@@ -95,13 +107,14 @@ export function ApprovalPanel({
     <div className="approval-panel">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">HUMAN REVIEW</span>
-          <h2>담당자 검토</h2>
+          <span className="eyebrow">MESSAGE ASSISTANT</span>
+          <h2>통보문 발송 도우미</h2>
         </div>
         <ShieldCheck size={22} />
       </div>
       <p className="section-description">
-        계산 결과를 검토하고, 확인한 결과에 대해 결정을 남깁니다.
+        AI는 통보문 초안을 만들어 둡니다. 문구를 확인하고 발송할지는 도청 에너지
+        담당 부서 담당자가 정합니다.
       </p>
       <div className="review-facts">
         <div>
@@ -112,17 +125,34 @@ export function ApprovalPanel({
               : "선택된 분석 없음"}
           </strong>
         </div>
+        {conditionFacts(run).map(({ label, value }) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
         <div>
           <span>운영 검증</span>
           <strong>미완료 · 실제 조치 불가</strong>
         </div>
         <div>
-          <span>전송 방식</span>
-          <strong>시연 검토만 가능</strong>
+          <span>발송 방식</span>
+          <strong>시연 · 모의 발송만 가능</strong>
         </div>
       </div>
       {run?.draft ? (
-        <DraftView run={run} />
+        <>
+          <DraftView run={run} />
+          <div className="draft-copy">
+            <Button variant="ghost" onClick={() => void copyDraft()}>
+              <Copy size={14} aria-hidden="true" />
+              {copied ? "복사했습니다" : "통보문 복사"}
+            </Button>
+            <span className="caption">
+              기관의 문자 발송 시스템에 붙여 넣어 사용할 수 있습니다.
+            </span>
+          </div>
+        </>
       ) : (
         <div className="draft-empty">검토할 초안이 아직 없습니다.</div>
       )}
@@ -149,8 +179,8 @@ export function ApprovalPanel({
           <div>
             <strong>
               {run.decision.action === "approve"
-                ? "검토 승인 기록"
-                : "반려 기록"}
+                ? "발송 결정 기록: 확정"
+                : "발송 결정 기록: 보류"}
             </strong>
             <p>
               {run.decision.reason} · {run.decision.actor}
@@ -182,24 +212,24 @@ export function ApprovalPanel({
               disabled={!eligible}
               onClick={() => open("reject")}
             >
-              반려 검토
+              발송 보류
             </Button>
             <Button disabled={!eligible} onClick={() => open("approve")}>
-              시연 승인 검토
+              발송 확정
             </Button>
           </>
         )}
       </div>
       <p className="caption">
-        승인과 반려는 되돌릴 수 없습니다. 실제 전력 설비에는 명령을 보내지
-        않습니다.
+        발송 확정과 보류는 되돌릴 수 없습니다. 시연에서는 실제 문자가 발송되지
+        않으며, 실제 전력 설비에도 명령을 보내지 않습니다.
       </p>
       {action && (
         <Modal
           title={
             action === "approve"
-              ? "이 결과를 시연 승인할까요?"
-              : "이 결과를 반려할까요?"
+              ? "이 통보문을 발송할까요?"
+              : "이 통보문의 발송을 보류할까요?"
           }
           locked={busy}
           onClose={() => setAction(null)}
@@ -272,7 +302,7 @@ export function ApprovalPanel({
                 checked={checked}
                 onChange={(e) => setChecked(e.target.checked)}
               />
-              시연 결과임을 확인했고, 이 결과에 대한 결정을 기록합니다.
+              시연 결과임을 확인했고, 담당자로서 이 결정을 기록합니다.
             </label>
             <p id="review-help" className="caption">
               인증 토큰은 이번 창에서만 사용하며 저장하지 않습니다.
@@ -303,7 +333,7 @@ export function ApprovalPanel({
                   (!eligible && !retry)
                 }
               >
-                {action === "approve" ? "시연 승인 기록" : "반려 기록"}
+                {action === "approve" ? "발송 확정 기록" : "보류 기록"}
               </Button>
             </div>
           </form>

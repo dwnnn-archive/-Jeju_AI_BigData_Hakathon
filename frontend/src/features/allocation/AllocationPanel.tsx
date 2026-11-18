@@ -1,5 +1,6 @@
 import type { AnalysisRun } from "../analysis/types";
 import { fmt, pad } from "../analysis/FlowChart";
+import { RunConditions } from "../analysis/RunConditions";
 
 const resources = [
   { key: "bess", name: "ESS 충전", detail: "대형 ESS · BESS" },
@@ -7,6 +8,13 @@ const resources = [
   { key: "p2x", name: "수전해 수소 생산", detail: "수소 전환 · P2X" },
   { key: "ev", name: "전기차 충전 전환", detail: "스마트 충전 · EV" },
 ] as const;
+
+/** 자원별 용량 근거. VPP는 근거 자료를 찾지 못한 가정값이다. */
+const basisNote = {
+  bess: { tag: "자료 기반", text: "제주 ESS 계량 자료의 실적 기준(하한)" },
+  vpp: { tag: "가정값", text: "근거 자료 없음 · 시연용 추정치입니다" },
+  p2x: { tag: "보도 기준", text: "행원 실증단지 3.3 MW(보도), 공식 통계 아님" },
+} as const;
 
 export function AllocationPanel({
   run,
@@ -20,11 +28,11 @@ export function AllocationPanel({
   if (!run?.allocation)
     return (
       <section className="ed-empty">
-        <h2>배분 권고안이 없습니다.</h2>
+        <h2>대응 후보 제안이 없습니다.</h2>
         <p>
           {run?.result
             ? "피크 잉여전력이 위험 기준 미만이라 자원 배분이 필요하지 않습니다."
-            : "분석 결과가 확인되면 피크 1시간에 대한 자원별 권고안을 표시합니다."}
+            : "분석 결과가 확인되면 피크 1시간에 대한 자원별 대응 후보 제안을 표시합니다."}
         </p>
       </section>
     );
@@ -43,6 +51,7 @@ export function AllocationPanel({
     : "피크 1시간";
   return (
     <>
+      <RunConditions run={run} />
       <section className="dv-alloc ed-alloc" aria-labelledby="ed-alloc-title">
         <div>
           <h2 id="ed-alloc-title">
@@ -69,19 +78,26 @@ export function AllocationPanel({
                 <div>
                   <strong>{name}</strong>
                   <span>{detail}</span>
+                  {key !== "ev" && (
+                    <span className={`basis-tag basis-tag--${key}`}>
+                      {basisNote[key].tag}
+                    </span>
+                  )}
                   <p>
                     {key === "ev" && ev
                       ? fromHistory
                         ? `허브 충전소 ${ev.stations_open.toLocaleString()}곳 운영 중 · 충전 이력(${historyRange}) 기반 이용률`
                         : `허브 충전소 ${ev.stations_open.toLocaleString()}곳 운영 중 · 이용률 ${Math.round(ev.assumptions.idle_ratio * 100)}% 가정`
-                      : "시연 가용량 기준"}
+                      : key === "ev"
+                        ? "시연 가용량 기준"
+                        : basisNote[key].text}
                   </p>
                   <meter
                     className="ed-meter"
                     min={0}
                     max={cap || 1}
                     value={value}
-                    aria-label={`${name} 권고 배분량`}
+                    aria-label={`${name} 제안 배분량`}
                   />
                 </div>
                 <p>
@@ -140,7 +156,7 @@ export function AllocationPanel({
       ) : null}
       <dl className="dv-kpis ed-kpis ed-kpis--3">
         <div>
-          <dt>흡수 권고량</dt>
+          <dt>흡수 제안량</dt>
           <dd>
             {fmt(allocation.absorbed_mwh)}
             <small>MWh</small>
@@ -162,11 +178,12 @@ export function AllocationPanel({
         </div>
       </dl>
       <p className="dv-caption">
-        설비 상태를 확인한 실제 제어안이 아닙니다.{" "}
+        참고용 대응 후보 제안이며 도청이 배분을 정하는 것이 아닙니다. 설비
+        상태를 확인한 실제 제어안도 아닙니다.{" "}
         {ev
           ? fromHistory
-            ? `스마트 충전(EV) 용량만 제주데이터허브 충전소 정보(기준 ${baseDate}, 전체 ${ev.stations_total.toLocaleString()}곳)와 과거 충전 이력(${historyRange}, 시간대·요일별 이용 패턴)으로 계산했습니다. 이력이 과거라 현재 이용 수준과 다를 수 있습니다. 나머지 자원은 시연 추정치입니다. `
-            : `스마트 충전(EV) 용량만 제주데이터허브 충전소 정보(기준 ${baseDate}, 전체 ${ev.stations_total.toLocaleString()}곳)로 계산했고, 충전기 출력(완속 ${ev.assumptions.slow_kw}kW·급속 ${ev.assumptions.fast_kw}kW)과 이용률은 가정입니다. 나머지 자원은 시연 추정치입니다. `
+            ? `스마트 충전(EV) 용량만 제주데이터허브 충전소 정보(기준 ${baseDate}, 전체 ${ev.stations_total.toLocaleString()}곳)와 과거 충전 이력(${historyRange}, 시간대·요일별 이용 패턴)으로 계산했습니다. 이력이 과거라 현재 이용 수준과 다를 수 있습니다. 나머지 자원은 카드의 근거 표시(자료 기반·보도 기준·가정값)를 따르며, 가정값은 확인이 필요합니다. `
+            : `스마트 충전(EV) 용량만 제주데이터허브 충전소 정보(기준 ${baseDate}, 전체 ${ev.stations_total.toLocaleString()}곳)로 계산했고, 충전기 출력(완속 ${ev.assumptions.slow_kw}kW·급속 ${ev.assumptions.fast_kw}kW)과 이용률은 가정입니다. 나머지 자원은 카드의 근거 표시(자료 기반·보도 기준·가정값)를 따르며, 가정값은 확인이 필요합니다. `
           : "현재 자원 가용량은 시연 추정치이며 "}
         실제 저장·출력제한 명령을 전송하지 않습니다.
       </p>
@@ -184,7 +201,7 @@ export function AllocationPanel({
             <button type="button" className="ed-stepnav-next" onClick={onNext}>
               다음 단계
               <strong>
-                검토·승인 <span aria-hidden="true">›</span>
+                통보문 확인 <span aria-hidden="true">›</span>
               </strong>
             </button>
           )}

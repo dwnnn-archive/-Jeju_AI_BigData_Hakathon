@@ -37,9 +37,9 @@ test("real API: empty → result → review → mock notification, with keyboard
       .analyze()
   ).violations;
   expect(violations).toEqual([]);
-  await page.getByRole("button", { name: "승인 관리", exact: true }).click();
+  await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
   const open = page.getByRole("button", {
-    name: "시연 승인 검토",
+    name: "발송 확정",
     exact: true,
   });
   await open.click();
@@ -57,11 +57,11 @@ test("real API: empty → result → review → mock notification, with keyboard
       .violations,
   ).toEqual([]);
   await page
-    .getByRole("button", { name: "시연 승인 기록", exact: true })
+    .getByRole("button", { name: "발송 확정 기록", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
-    "검토 승인됨",
+    "발송 확정됨",
   );
   await expect(
     page.getByText("시연 발송 처리 완료", { exact: true }),
@@ -131,9 +131,9 @@ test("network loss blocks review and preserves the same request identity", async
   page,
 }) => {
   await analyze(page);
-  await page.getByRole("button", { name: "승인 관리", exact: true }).click();
+  await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "시연 승인 검토", exact: true }),
+    page.getByRole("button", { name: "발송 확정", exact: true }),
   ).toBeEnabled();
   await page.route("**/api/v1/analyses/*", (route) => route.abort());
   await page.getByRole("button", { name: "상태 확인", exact: true }).click();
@@ -141,7 +141,7 @@ test("network loss blocks review and preserves the same request identity", async
     "상태 확인 불가",
   );
   await expect(
-    page.getByRole("button", { name: "시연 승인 검토", exact: true }),
+    page.getByRole("button", { name: "발송 확정", exact: true }),
   ).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "분석 요청", exact: true }),
@@ -155,27 +155,25 @@ test("changed selection cannot approve the previous result, and unauthorized app
   page,
 }) => {
   await analyze(page);
-  await page.getByRole("button", { name: "승인 관리", exact: true }).click();
+  await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
   await page.getByRole("radio", { name: "한림", exact: true }).check();
   await expect(
-    page.getByRole("button", { name: "시연 승인 검토", exact: true }),
+    page.getByRole("button", { name: "발송 확정", exact: true }),
   ).toBeDisabled();
   await page.getByRole("radio", { name: "제주 전체", exact: true }).check();
-  await page
-    .getByRole("button", { name: "시연 승인 검토", exact: true })
-    .click();
+  await page.getByRole("button", { name: "발송 확정", exact: true }).click();
   await page.getByLabel("검토 사유").fill("인증 실패 확인");
   await page.getByLabel("담당자 인증 토큰").fill("wrong-token");
   await page.getByRole("checkbox").check();
   await page
-    .getByRole("button", { name: "시연 승인 기록", exact: true })
+    .getByRole("button", { name: "발송 확정 기록", exact: true })
     .click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
     "인증 정보를 확인하세요.",
   );
-  await expect(page.getByText("검토 승인 기록", { exact: true })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByText("발송 결정 기록: 확정", { exact: true }),
+  ).toHaveCount(0);
 });
 
 test("mobile result has no document overflow and navigation keeps the selected analysis", async ({
@@ -197,9 +195,9 @@ test("mobile result has no document overflow and navigation keeps the selected a
   });
   await page.getByRole("button", { name: "자원 배분", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("자원 배분");
-  await page.getByRole("button", { name: "승인 관리", exact: true }).click();
+  await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "시연 승인 검토", exact: true }),
+    page.getByRole("button", { name: "발송 확정", exact: true }),
   ).toBeEnabled();
   expect(
     (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
@@ -226,4 +224,68 @@ test("history does not claim there are no records before the server responds", a
   release();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByText("저장된 분석이 없습니다")).toHaveCount(0);
+});
+
+test("intraday check button: normal day-ahead → 1st normal → 2nd critical → approval", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("당일 위험 전환").check({ force: true });
+  await page.getByLabel("행원").check({ force: true }); // 다른 테스트와 기록이 섞이지 않게 한다
+  const status = page.getByRole("status", { name: "분석 상태" });
+  await page.getByRole("button", { name: "분석 요청", exact: true }).click();
+  await expect(status).toContainText("계산 완료", { timeout: 15000 });
+  await expect(page.getByText("정상 범위").first()).toBeVisible();
+  // 하루 업무 흐름: 하루 전 분석은 끝났고 1차 점검이 다음 단계다.
+  const flow = page.getByRole("list", { name: "담당자 하루 업무 흐름" });
+  await expect(flow.locator(".workday-step--current")).toContainText(
+    "1차 점검",
+  );
+
+  const check = page.getByRole("button", { name: "당일 점검 요청" });
+  await check.click();
+  await expect(page.getByText("당일 1차 점검").first()).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(status).toContainText("계산 완료", { timeout: 15000 });
+  await expect(flow.locator(".workday-step--current")).toContainText(
+    "2차 점검",
+  );
+
+  await check.click();
+  await expect(page.getByText("당일 2차 점검").first()).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(status).toContainText("검토 필요", { timeout: 15000 });
+  await expect(flow.locator(".workday-step--current")).toContainText(
+    "통보문 확인",
+  );
+  // 위험이 나온 뒤에는 점검 버튼이 사라진다.
+  await expect(check).toHaveCount(0);
+});
+
+test("question panel: asks about the result and labels the answer source", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("한림").check({ force: true }); // 다른 테스트와 기록이 섞이지 않게 한다
+  await page.getByRole("button", { name: "분석 요청", exact: true }).click();
+  await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
+    "계산 완료",
+    { timeout: 15000 },
+  );
+  const panel = page.getByRole("region", { name: "결과에 대해 물어보기" });
+  await expect(panel).toBeVisible();
+  await panel
+    .getByRole("textbox", { name: "질문" })
+    .fill("배분은 어떻게 되나요?");
+  await panel.getByRole("button", { name: "질문하기" }).click();
+  // AI 키가 없는 환경이므로 기본 답변이고, 그 사실과 이유를 화면에 밝힌다.
+  await expect(panel.getByText("기본 답변", { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(panel.getByText(/AI 연결 키가 없어/)).toBeVisible();
+  await expect(panel.getByText(/수소 환산/)).toBeVisible();
 });

@@ -87,8 +87,8 @@ export function DraftView({ run }: { run: AnalysisRun }) {
 
       <p className="draft-doc-note">
         <Info size={18} aria-hidden="true" />
-        피크 1시간 권고안입니다. 자원 가용량은 시연 추정치이며 현장 검증과
-        담당자 승인이 필요합니다.
+        피크 1시간 대응 후보 제안(참고)입니다. 자원 가용량은 시연 추정치이며
+        현장 검증과 담당자 승인이 필요합니다.
       </p>
 
       <details className="draft-doc-raw">

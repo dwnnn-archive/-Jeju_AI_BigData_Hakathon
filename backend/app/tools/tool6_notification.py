@@ -21,9 +21,10 @@ def footer_lines(allocation: dict) -> str:
     """초안 끝의 충전소 안내와 한계 문구. LLM 초안에도 같은 문구를 코드가 붙인다."""
     return (
         _station_line(allocation)
-        + "피크 1시간 권고안. "
+        + "피크 1시간 대응 후보 제안(참고). "
         + (
-            "EV 용량만 제주데이터허브 충전소 정보 기반이며 나머지 자원 가용량은 시연 추정치입니다. "
+            "EV 용량은 제주데이터허브 충전소 정보 기반, BESS는 ESS 계량 실적, P2X는 보도 수치이며 "
+            "VPP는 근거 없는 가정값입니다. "
             if allocation.get("ev_basis")
             else "자원 가용량은 시연 추정치이며 "
         )
