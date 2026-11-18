@@ -156,7 +156,7 @@ class AnalysisService:
             answer = (
                 f"피크 1시간 배분: {a['allocated_mwh']} MWh. "
                 f"흡수율 {a['absorption_pct']:.2f}%, 수소 {a['hydrogen_kg']:.2f} kg. "
-                "시연 가용량과 수소 환산계수에 따른 권고안입니다."
+                "시연 가용량과 수소 환산계수에 따른 대응 후보 제안입니다."
             )
         else:
             r = run["result"]

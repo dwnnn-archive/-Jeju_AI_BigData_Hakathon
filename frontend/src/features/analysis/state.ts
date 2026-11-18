@@ -136,7 +136,7 @@ export function workdaySteps(run: AnalysisRun | null): WorkdayStep[] {
       key: "review",
       time: "위험 판정 즉시",
       title: "담당자 통보문 확인",
-      detail: "배분 권고와 통보문 초안 확인 후 발송 확정 또는 보류",
+      detail: "대응 후보 제안과 통보문 초안 확인 후 발송 확정 또는 보류",
     },
     {
       key: "notify",
