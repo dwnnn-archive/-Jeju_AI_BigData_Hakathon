@@ -4,6 +4,7 @@ import { runFixture } from "../src/test/fixtures";
 
 async function analyze(page: Page) {
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "계산 완료 · 검토 필요",
@@ -14,6 +15,7 @@ test("real API: empty → result → review → mock notification, with keyboard
   page,
 }, testInfo) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "분석 요청 전",
   );
@@ -22,7 +24,9 @@ test("real API: empty → result → review → mock notification, with keyboard
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "계산 완료 · 검토 필요",
   );
-  await expect(page.locator(".recharts-wrapper")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: /시간별 발전량과 수요/ }),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("desktop-result.png"),
     fullPage: true,
@@ -98,6 +102,7 @@ test("receipt delay and queue are never shown as running; only worker evidence s
     }),
   );
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toHaveText(
     "요청 전송 중",
@@ -151,11 +156,11 @@ test("changed selection cannot approve the previous result, and unauthorized app
 }) => {
   await analyze(page);
   await page.getByRole("button", { name: "승인 관리", exact: true }).click();
-  await page.getByLabel("분석 지역").selectOption("hallim");
+  await page.getByRole("radio", { name: "한림", exact: true }).check();
   await expect(
     page.getByRole("button", { name: "시연 승인 검토", exact: true }),
   ).toBeDisabled();
-  await page.getByLabel("분석 지역").selectOption("jeju");
+  await page.getByRole("radio", { name: "제주 전체", exact: true }).check();
   await page
     .getByRole("button", { name: "시연 승인 검토", exact: true })
     .click();
@@ -178,7 +183,9 @@ test("mobile result has no document overflow and navigation keeps the selected a
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await analyze(page);
-  await expect(page.locator(".recharts-wrapper")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: /시간별 발전량과 수요/ }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -212,6 +219,7 @@ test("history does not claim there are no records before the server responds", a
     await route.fulfill({ status: 503, json: { detail: "temporary failure" } });
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
   await page.getByRole("button", { name: "분석 이력", exact: true }).click();
   await expect(page.getByText("이력을 확인하고 있습니다.")).toBeVisible();
   await expect(page.getByText("저장된 분석이 없습니다")).toHaveCount(0);

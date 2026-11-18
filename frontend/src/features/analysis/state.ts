@@ -65,3 +65,102 @@ export const blockLabels: Record<string, string> = {
   result_unavailable: "확인된 결과가 아직 없습니다.",
   legacy_result: "이전 버전 결과는 조회만 가능합니다.",
 };
+
+/** 한국 표준시 기준 오늘(YYYY-MM-DD). */
+export function todayKst(now = Date.now()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+/**
+ * 당일 점검을 요청할 수 있는 화면 상태인가.
+ * 서버 규칙(오늘 날짜, 직전 결과 정상, 횟수 제한)의 앞단 확인일 뿐이며 최종 판단은 서버가 한다.
+ */
+export function canIntradayCheck(
+  run: AnalysisRun | null,
+  transport: Transport,
+  today = todayKst(),
+) {
+  return Boolean(
+    run &&
+    transport === "confirmed" &&
+    run.status === "completed" &&
+    run.result?.risk === "NORMAL" &&
+    run.request.date === today,
+  );
+}
+
+export type WorkdayStep = {
+  key: string;
+  time: string;
+  title: string;
+  detail: string;
+  state: "done" | "current" | "todo";
+};
+
+/** 하루 업무 흐름. 현재 화면의 분석이 어느 단계인지만 표시한다(없는 일을 한 것으로 쓰지 않는다). */
+export function workdaySteps(run: AnalysisRun | null): WorkdayStep[] {
+  const phase = run?.phase ?? run?.request.phase;
+  const check = run?.check_no ?? 0;
+  const risky =
+    run?.result?.risk === "CAUTION" || run?.result?.risk === "CRITICAL";
+  const decided = run?.status === "approved" || run?.status === "rejected";
+  const awaiting = run?.status === "awaiting_approval";
+  const finished = Boolean(run && run.status !== "queued");
+  const at = (n: number) => (phase === "intraday" ? check >= n : false);
+  const dayAheadDone = finished && (phase !== "intraday" || check >= 1);
+  const steps: Omit<WorkdayStep, "state">[] = [
+    {
+      key: "day_ahead",
+      time: "전날 17:30",
+      title: "하루 전 분석",
+      detail: "내일 24시간 발전량·수요 예측, 위험 판정(자동 실행)",
+    },
+    {
+      key: "check1",
+      time: "당일 07:45",
+      title: "당일 1차 점검",
+      detail: "하루 전이 정상일 때만. 초단기예보로 다시 판정",
+    },
+    {
+      key: "check2",
+      time: "당일 10:45",
+      title: "당일 2차 점검",
+      detail: "여전히 정상이면 한 번 더. 하루 최대 2회",
+    },
+    {
+      key: "review",
+      time: "위험 판정 즉시",
+      title: "담당자 검토·승인",
+      detail: "배분 권고와 통보문 초안 확인 후 승인 또는 반려",
+    },
+    {
+      key: "notify",
+      time: "승인 직후",
+      title: "관계기관 통보",
+      detail: "승인된 초안으로 통보(실제 발송은 운영 검증 후)",
+    },
+    {
+      key: "peak",
+      time: "09:00–15:00",
+      title: "출력제한 피크 시간대",
+      detail: "KPX가 출력제한 여부를 판단·지시(서비스 범위 밖)",
+    },
+  ];
+  const done = [dayAheadDone, at(1), at(2), risky && decided, false, false];
+  let current = -1;
+  if (!run) current = 0;
+  else if (risky && awaiting) current = 3;
+  else if (risky && decided) current = 4;
+  else if (phase === "intraday") current = check >= 2 ? 5 : check + 1;
+  else current = 1;
+  return steps.map((s, i) => ({
+    ...s,
+    state:
+      done[i] && i !== current ? "done" : i === current ? "current" : "todo",
+  }));
+}

@@ -2,18 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BarChart3,
-  BatteryCharging,
-  CheckSquare2,
   History,
+  House,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
   Settings2,
   RefreshCw,
-  ShieldCheck,
-  ChevronRight,
-  Menu,
 } from "lucide-react";
 import { createApi } from "../api/client";
 import { useAnalysis } from "../features/analysis/useAnalysis";
-import { AnalysisForm, regions } from "../features/analysis/AnalysisForm";
+import { AnalysisForm } from "../features/analysis/AnalysisForm";
 import type {
   AnalysisRequest,
   AnalysisSummary,
@@ -22,17 +21,55 @@ import { StatusBadge } from "../components/StatusBadge";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { ForecastPage } from "../pages/ForecastPage";
+import { DashboardPage } from "../pages/DashboardPage";
+import { LandingPage } from "../pages/LandingPage";
+import { LoginPage, type Session } from "../pages/LoginPage";
 import { AllocationPanel } from "../features/allocation/AllocationPanel";
 import { ApprovalPanel } from "../features/approval/ApprovalPanel";
 import { HistoryPanel } from "../features/history/HistoryPanel";
 
-type Page = "forecast" | "allocation" | "approval" | "history";
-const pages = [
-  { id: "forecast", label: "발전량 예측", icon: BarChart3 },
-  { id: "allocation", label: "자원 배분", icon: BatteryCharging },
-  { id: "approval", label: "승인 관리", icon: CheckSquare2 },
+type Step = "forecast" | "allocation" | "approval";
+type Page = "landing" | "login" | "dashboard" | Step | "history";
+const steps = [
+  {
+    id: "forecast",
+    label: "발전량 예측",
+    short: "예측",
+    headline: "발전량 예측",
+    description:
+      "다음날 시간별 발전량과 수요를 비교해 대응이 필요한 시간을 찾습니다.",
+  },
+  {
+    id: "allocation",
+    label: "자원 배분",
+    short: "배분",
+    headline: "자원 배분",
+    description:
+      "피크 1시간의 잉여전력을 어떤 자원에 얼마나 흡수시킬지 권고합니다.",
+  },
+  {
+    id: "approval",
+    label: "승인 관리",
+    short: "검토·승인",
+    headline: "검토와 결정",
+    description: "이 분석 결과에 대해 담당자가 시연 승인 또는 반려를 남깁니다.",
+  },
+] as const;
+const nav = [
+  { id: "landing", label: "소개", icon: House },
+  { id: "dashboard", label: "대시보드", icon: LayoutDashboard },
+  { id: "analysis", label: "분석", icon: BarChart3 },
   { id: "history", label: "분석 이력", icon: History },
 ] as const;
+const isStep = (page: Page): page is Step =>
+  page === "forecast" || page === "allocation" || page === "approval";
+function pageLabel(page: Page) {
+  if (page === "landing") return "소개";
+  if (page === "login") return "로그인";
+  if (page === "dashboard") return "대시보드";
+  if (page === "history") return "분석 이력";
+  return steps.find((s) => s.id === page)!.label;
+}
 function tomorrow() {
   const now = new Date(Date.now() + 86400000);
   return new Intl.DateTimeFormat("en-CA", {
@@ -55,10 +92,14 @@ function formatTime(value: number | null) {
 }
 
 export function App() {
-  const [page, setPage] = useState<Page>("forecast");
+  const [page, setPage] = useState<Page>("landing");
+  const [lastStep, setLastStep] = useState<Step>("forecast");
   const [apiKey, setApiKey] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyDraft, setKeyDraft] = useState("");
+  // Officer login lives only in memory: a refresh logs out (no token storage).
+  const [session, setSession] = useState<Session | null>(null);
+  const [returnTo, setReturnTo] = useState<Page>("dashboard");
   const api = useMemo(() => createApi(apiKey), [apiKey]);
   const analysis = useAnalysis(api);
   const [form, setForm] = useState<AnalysisRequest>(
@@ -107,109 +148,169 @@ export function App() {
     }
   }, [api]);
   useEffect(() => {
-    if (page === "history") void loadHistory();
+    if (page === "history" || page === "dashboard") void loadHistory();
   }, [page, loadHistory]);
-  function submit() {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
+  useEffect(() => {
+    if (isStep(page)) setLastStep(page);
+  }, [page]);
+  function submit(request: AnalysisRequest = form) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(request.date)) {
       setFormError("예측 대상일을 선택하세요.");
       return;
     }
     setFormError("");
-    void analysis.submit(form);
+    setForm(request);
+    void analysis.submit(request);
   }
+  function openItem(item: AnalysisSummary) {
+    setForm(item.request);
+    analysis.select(item.id, item.request);
+    setPage("forecast");
+  }
+  function openLogin() {
+    setReturnTo(page === "login" || page === "landing" ? "dashboard" : page);
+    setPage("login");
+  }
+  async function login(approverId: string, token: string) {
+    const confirmed = await api.checkLogin(approverId, token);
+    setSession({ approverId: confirmed, token });
+    setPage(returnTo);
+  }
+  const activeStep = isStep(page) ? steps.find((s) => s.id === page)! : null;
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell app-shell--gnb ${page === "landing" ? "is-landing" : ""}`}
+    >
       <a className="skip-link" href="#main">
         본문으로 이동
       </a>
-      <aside className="sidebar">
-        <div className="brand">
+      <header className={`gnb ${page === "landing" ? "gnb--overlay" : ""}`}>
+        <button
+          className="gnb-brand"
+          onClick={() => setPage("landing")}
+          aria-label="제주 에너지 소개 화면으로"
+        >
           <span className="brand-mark">
-            <Activity size={25} />
+            <Activity size={22} aria-hidden="true" />
           </span>
-          <div>
+          <span>
             <strong>제주 에너지</strong>
-            <span>예측과 검토</span>
-          </div>
-        </div>
-        <div className="nav-caption">WORKSPACE</div>
-        <nav aria-label="주 메뉴">
-          {pages.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              className={`nav-item ${page === id ? "active" : ""}`}
-              aria-current={page === id ? "page" : undefined}
-              onClick={() => setPage(id)}
-            >
-              <Icon size={19} />
-              <span>{label}</span>
-              {page === id && <ChevronRight size={15} />}
-            </button>
-          ))}
+            <small>JEJU ENERGY</small>
+          </span>
+        </button>
+        <nav className="gnb-nav" aria-label="주 메뉴">
+          {nav.map(({ id, label, icon: Icon }) => {
+            const current = id === "analysis" ? isStep(page) : page === id;
+            return (
+              <button
+                key={id}
+                className="gnb-link"
+                aria-current={current ? "page" : undefined}
+                onClick={() => setPage(id === "analysis" ? lastStep : id)}
+              >
+                <Icon size={20} aria-hidden="true" />
+                {label}
+              </button>
+            );
+          })}
         </nav>
-        <div className="sidebar-bottom">
-          <div className="environment">
-            <span className="env-dot" />
-            <span>검토용 개발 환경</span>
-          </div>
-          <p>
-            확인된 정보로 판단하고,
-            <br />
-            검토한 결과에 결정을 남깁니다.
-          </p>
+        <div className="gnb-actions">
+          <span className="gnb-env">
+            <span className="env-dot" aria-hidden="true" />
+            시연 모드
+          </span>
           <button
-            className="nav-item"
+            className="gnb-pill gnb-pill--icon"
             onClick={() => {
               setKeyDraft(apiKey);
               setSettingsOpen(true);
             }}
+            aria-label="연결 설정"
+            title="연결 설정"
           >
-            <Settings2 size={18} />
-            연결 설정
+            <Settings2 size={18} aria-hidden="true" />
           </button>
-        </div>
-      </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div>
-            <Menu size={16} />
-            <span>제주 출력제한 대응</span>
-            <span className="divider">/</span>
-            <strong>{pages.find((p) => p.id === page)?.label}</strong>
-          </div>
-          <span className="topbar-note">
-            <ShieldCheck size={15} />
-            확인 기반 의사결정
-          </span>
-        </header>
-        <main id="main">
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">JEJU ENERGY INTELLIGENCE</p>
-              <h1>{pages.find((p) => p.id === page)?.label}</h1>
-              <p>
-                다음날의 에너지 흐름을 살펴보고, 대응이 필요한 시간을
-                확인하세요.
-              </p>
-            </div>
-            <span className="date-note">한국 표준시 · KST</span>
-          </div>
-          <div className="mode-banner">
-            <span className="mode-tag">
-              {form.mode === "demo"
-                ? "시연 모드"
-                : "외부 데이터 · 운영 검증 전"}
-            </span>
-            <p>
-              {form.mode === "demo"
-                ? "미리 정한 데이터로 분석과 검토 절차를 확인합니다. 실제 예측·설비 제어 결과가 아닙니다."
-                : "외부 데이터 조회를 시도합니다. 미검증 결과는 실제 조치나 발송에 사용할 수 없습니다."}
-            </p>
-          </div>
-          {page !== "history" && (
+          {session ? (
             <>
-              <section className="panel control-panel" aria-label="분석 조건">
+              <span className="gnb-user">{session.approverId} 담당자</span>
+              <button
+                className="gnb-pill"
+                onClick={() => setSession(null)}
+                aria-label="로그아웃"
+              >
+                <LogOut size={18} aria-hidden="true" />
+                <span>로그아웃</span>
+              </button>
+            </>
+          ) : (
+            <button
+              className="gnb-pill"
+              onClick={openLogin}
+              aria-current={page === "login" ? "page" : undefined}
+              aria-label="로그인"
+            >
+              <LogIn size={18} aria-hidden="true" />
+              <span>로그인</span>
+            </button>
+          )}
+        </div>
+      </header>
+      <div className="workspace">
+        <main
+          id="main"
+          className={
+            page === "landing"
+              ? "main--landing"
+              : isStep(page) || page === "history"
+                ? "main--editorial"
+                : undefined
+          }
+        >
+          {page === "landing" ? (
+            <LandingPage
+              run={run}
+              transport={transport}
+              onNavigate={(target) => setPage(target)}
+              onOpenSettings={() => {
+                setKeyDraft(apiKey);
+                setSettingsOpen(true);
+              }}
+            />
+          ) : page === "login" ? (
+            <LoginPage onLogin={login} />
+          ) : page === "dashboard" ? (
+            <DashboardPage
+              run={run}
+              transport={transport}
+              date={form.date}
+              onDateChange={(date) => setForm({ ...form, date })}
+              onSubmit={() => submit({ ...form, region: "jeju" })}
+              submitDisabled={unresolved || transport === "sending"}
+              formError={formError}
+              onGoReview={() => setPage("approval")}
+              onOpenForecast={() => setPage("forecast")}
+            />
+          ) : (
+            <header className="ed-head">
+              <p className="dv-eyebrow">
+                {activeStep
+                  ? `분석 · ${String(steps.indexOf(activeStep) + 1).padStart(2, "0")} / 03 · ${pageLabel(page)}`
+                  : "분석 기록 · 한국 표준시 KST"}
+              </p>
+              <h1 className="dv-hero dv-hero--md">
+                {activeStep ? activeStep.headline : "분석 이력"}
+              </h1>
+              <p className="dv-lead">
+                {activeStep
+                  ? activeStep.description
+                  : "최근 분석 기록을 확인하고 결과를 다시 엽니다."}
+              </p>
+            </header>
+          )}
+          {activeStep && (
+            <>
+              <section className="ed-conditions" aria-label="분석 조건">
                 <AnalysisForm
                   value={form}
                   onChange={setForm}
@@ -221,8 +322,18 @@ export function App() {
                     {formError}
                   </p>
                 )}
+                <p className="ed-mode">
+                  <strong>
+                    {form.mode === "demo"
+                      ? "시연 모드"
+                      : "외부 데이터 · 운영 검증 전"}
+                  </strong>
+                  {form.mode === "demo"
+                    ? "미리 정한 데이터로 분석과 검토 절차를 확인합니다. 실제 예측·설비 제어 결과가 아닙니다."
+                    : "외부 데이터 조회를 시도합니다. 미검증 결과는 실제 조치나 발송에 사용할 수 없습니다."}
+                </p>
               </section>
-              <div className="status-row">
+              <div className="status-row ed-statusline">
                 <StatusBadge run={run} transport={transport} />
                 <span className="last-confirmed">
                   서버 마지막 확인{" "}
@@ -234,7 +345,7 @@ export function App() {
                     disabled={transport === "sending" || analysis.decisionBusy}
                     onClick={analysis.refresh}
                   >
-                    <RefreshCw size={14} />
+                    <RefreshCw size={14} aria-hidden="true" />
                     상태 확인
                   </Button>
                 )}
@@ -257,40 +368,42 @@ export function App() {
                   )}
                 </div>
               )}
-              {run && (
-                <div className="result-context">
-                  <span>
-                    표시된 결과의 대상:{" "}
-                    <strong>
-                      {run.request.date} · {regions[run.request.region]}
-                    </strong>{" "}
-                    · {run.simulation ? "시연 데이터" : "외부 데이터"}
-                  </span>
-                  <span className="mono">ID {run.id.slice(0, 8)}</span>
-                </div>
-              )}
               {!matches && (
                 <p className="notice notice--warning">
                   선택 조건이 바뀌었습니다. 아래 결과는 기존 분석이며, 새 조건의
                   결과가 아닙니다.
                 </p>
               )}
+              <nav className="dv-tabs ed-steps" aria-label="분석 단계">
+                {steps.map((step, index) => (
+                  <button
+                    key={step.id}
+                    className="dv-tab"
+                    aria-current={page === step.id ? "page" : undefined}
+                    aria-label={step.label}
+                    onClick={() => setPage(step.id)}
+                  >
+                    <span className="ed-step-num" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span aria-hidden="true">{step.label}</span>
+                  </button>
+                ))}
+              </nav>
             </>
           )}
-          {page === "forecast" && <ForecastPage run={run} />}
+          {page === "forecast" && (
+            <ForecastPage run={run} onNext={() => setPage("allocation")} />
+          )}
           {page === "allocation" && (
-            <section className="panel">
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">RESOURCE ALLOCATION</span>
-                  <h2>피크 시간의 자원 배분</h2>
-                </div>
-              </div>
-              <AllocationPanel run={run} />
-            </section>
+            <AllocationPanel
+              run={run}
+              onPrev={() => setPage("forecast")}
+              onNext={() => setPage("approval")}
+            />
           )}
           {page === "approval" && (
-            <section className="panel">
+            <section className="ed-approval">
               <ApprovalPanel
                 run={run}
                 transport={transport}
@@ -298,6 +411,8 @@ export function App() {
                 busy={analysis.decisionBusy}
                 reviewExpired={analysis.reviewExpired}
                 onDecide={analysis.decide}
+                session={session}
+                onLogin={openLogin}
               />
             </section>
           )}
@@ -307,17 +422,13 @@ export function App() {
               items={items}
               error={historyError}
               onRefresh={() => void loadHistory()}
-              onSelect={(item) => {
-                setForm(item.request);
-                analysis.select(item.id, item.request);
-                setPage("forecast");
-              }}
+              onSelect={openItem}
             />
           )}
           {run?.sources &&
             Object.keys(run.sources).length > 0 &&
-            page !== "history" && (
-              <details className="sources">
+            activeStep && (
+              <details className="dv-details sources">
                 <summary>데이터 출처와 실행 기록</summary>
                 <div className="source-grid">
                   {Object.entries(run.sources).map(([key, value]) => (
@@ -343,10 +454,15 @@ export function App() {
                 </p>
               </details>
             )}
-          <footer className="page-footer">
-            <span>제주 에너지 · 의사결정 지원</span>
-            <span>예측 · 검토 · 승인 기록</span>
-          </footer>
+          {page !== "landing" && (
+            <footer className="page-footer">
+              <span>제주 에너지 · 의사결정 지원</span>
+              <span>
+                예측값은 검토용 참고 정보이며 실제 조치 승인을 대신하지
+                않습니다.
+              </span>
+            </footer>
+          )}
         </main>
       </div>
       {settingsOpen && (

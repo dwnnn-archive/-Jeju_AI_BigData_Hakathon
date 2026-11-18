@@ -16,21 +16,10 @@
   font-variant-numeric: tabular-nums;
 }
 .status-row .button {
-  font-size: 11px;
-  min-height: 34px;
-  padding: 5px 8px;
-}
-.result-context {
-  font-size: 12px;
-  color: var(--muted);
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.result-context strong {
-  font-weight: 650;
-  color: var(--text);
+  font-size: var(--font-body-4);
+  font-weight: var(--weight-medium);
+  min-height: var(--button-sm);
+  padding: 0 var(--space-12);
 }
 .forecast-grid {
   display: grid;
@@ -61,13 +50,13 @@
   display: inline-block;
 }
 .legend-generation {
-  background: var(--primary);
+  background: var(--primary-chart);
 }
 .legend-demand {
-  border-bottom: 2px dashed #6c7f91;
+  border-bottom: 2px dashed var(--text-sub);
 }
 .legend-surplus {
-  background: #f3dfb3 !important;
+  background: var(--surplus) !important;
   height: 8px !important;
   border-radius: 2px;
 }
@@ -90,10 +79,10 @@
 .risk-cell {
   height: 7px;
   border-radius: 2px;
-  background: #dfebe9;
+  background: var(--line-light);
 }
 .risk-cell--caution {
-  background: #b27b20;
+  background: var(--warning-fill);
 }
 .risk-cell--critical {
   background: var(--danger);
@@ -115,7 +104,7 @@
 }
 .data-details {
   margin-top: 20px;
-  border-top: 1px solid #e8edf1;
+  border-top: 1px solid var(--line-light);
   padding-top: 14px;
   font-size: 12px;
   color: var(--muted);
@@ -133,7 +122,7 @@
 .big-number {
   font-size: 42px;
   letter-spacing: -1.5px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   font-variant-numeric: tabular-nums;
   margin: 5px 0 10px;
@@ -142,28 +131,28 @@
   font-size: 14px;
   color: var(--muted);
   letter-spacing: 0;
-  font-weight: 450;
+  font-weight: 400;
   margin-left: 8px;
 }
 .risk-badge {
   font-size: 11px;
-  font-weight: 650;
-  border-radius: 5px;
+  font-weight: 600;
+  border-radius: var(--control-radius);
   padding: 4px 9px;
-  background: #edf1f4;
+  background: var(--bg-sub);
   color: var(--muted);
 }
 .risk-badge--critical {
-  background: #fbecef;
+  background: var(--danger-soft);
   color: var(--danger);
 }
 .risk-badge--caution {
-  background: #fff4de;
+  background: var(--warning-soft);
   color: var(--warning);
 }
 .risk-badge--normal {
-  background: #e9f5ef;
-  color: #237653;
+  background: var(--success-soft);
+  color: var(--success-text);
 }
 .summary-list {
   margin: 26px 0 18px;
@@ -173,7 +162,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 11px 0;
-  border-bottom: 1px solid #eef2f4;
+  border-bottom: 1px solid var(--line-light);
   font-size: 12px;
 }
 .summary-list dt {
@@ -184,15 +173,15 @@
 }
 .summary-list dd {
   margin: 0;
-  font-weight: 650;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .summary-note {
   display: flex;
   gap: 8px;
-  background: #f5f8fa;
+  background: var(--background);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--control-radius);
   color: var(--muted);
   font-size: 11px;
   line-height: 1.8;
@@ -225,8 +214,8 @@
 .source-grid > div {
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: white;
+  border-radius: var(--control-radius);
+  background: var(--surface);
 }
 .source-grid span,
 .source-grid small {

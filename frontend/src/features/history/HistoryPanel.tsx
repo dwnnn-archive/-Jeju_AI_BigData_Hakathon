@@ -1,8 +1,16 @@
 import type { AnalysisSummary } from "../analysis/types";
 import { labels, phaseLabel } from "../analysis/state";
 import { regions } from "../analysis/AnalysisForm";
-import { Button } from "../../components/Button";
-import { EmptyState } from "../../components/EmptyState";
+import { longDate } from "../analysis/FlowChart";
+
+const timeFormat = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 export function HistoryPanel({
   items,
@@ -17,18 +25,24 @@ export function HistoryPanel({
   onSelect: (item: AnalysisSummary) => void;
   onRefresh: () => void;
 }) {
+  const pending = items.filter((i) => i.status === "awaiting_approval").length;
   return (
-    <section className="panel">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">ANALYSIS RECORDS</span>
-          <h2>분석 이력</h2>
-        </div>
-        <Button variant="secondary" onClick={onRefresh} disabled={loading}>
-          이력 새로고침
-        </Button>
+    <section className="ed-history" aria-labelledby="ed-history-title">
+      <div className="ed-history-head">
+        <h2 id="ed-history-title">
+          최근 {items.length}건
+          {pending > 0 && <span> · 검토 대기 {pending}건</span>}
+        </h2>
+        <button
+          type="button"
+          className="dv-link"
+          onClick={onRefresh}
+          disabled={loading}
+        >
+          {loading ? "확인 중" : "이력 새로고침 ›"}
+        </button>
       </div>
-      <p className="section-description">
+      <p className="dv-caption ed-history-note">
         최근 30건 · 상태는 이력을 불러온 시점의 기록입니다. 결과를 열면 다시
         확인합니다.
       </p>
@@ -37,58 +51,48 @@ export function HistoryPanel({
           {error}
         </p>
       )}
-      {loading && <p role="status">이력을 확인하고 있습니다.</p>}
+      {loading && !items.length && (
+        <p role="status" className="dv-caption">
+          이력을 확인하고 있습니다.
+        </p>
+      )}
       {items.length ? (
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>대상일 / 지역</th>
-                <th>단계</th>
-                <th>데이터</th>
-                <th>확인된 상태</th>
-                <th>분석 ID</th>
-                <th>결과</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <strong>{item.request.date}</strong>
-                    <br />
-                    <span className="muted">
-                      {regions[item.request.region]}
-                    </span>
-                  </td>
-                  <td>
-                    {phaseLabel(
-                      item.phase ?? item.request.phase,
-                      item.check_no,
-                    )}
-                  </td>
-                  <td>{item.simulation ? "시연" : "외부 · 검증 전"}</td>
-                  <td>{labels[item.status]}</td>
-                  <td className="mono">{item.id.slice(0, 8)}</td>
-                  <td>
-                    <Button
-                      variant="ghost"
-                      onClick={() => onSelect(item)}
-                      aria-label={`${item.request.date} ${item.id.slice(0, 8)} 결과 열기`}
-                    >
-                      결과 열기
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="ed-history-list">
+          {items.map((item) => (
+            <li key={item.id}>
+              <div className="ed-history-main">
+                <strong>{longDate(item.request.date)}</strong>
+                <span>
+                  {regions[item.request.region]} ·{" "}
+                  {phaseLabel(item.phase ?? item.request.phase, item.check_no)}{" "}
+                  · {item.simulation ? "시연" : "외부 · 검증 전"} · 접수{" "}
+                  {timeFormat.format(new Date(item.created_at))}
+                </span>
+              </div>
+              <span
+                className={`ed-status ed-status--${item.status === "awaiting_approval" ? "pending" : item.status === "failed" || item.status === "interrupted" ? "bad" : "plain"}`}
+              >
+                {labels[item.status]}
+              </span>
+              <span className="mono ed-history-id">{item.id.slice(0, 8)}</span>
+              <button
+                type="button"
+                className="dv-link"
+                onClick={() => onSelect(item)}
+                aria-label={`${item.request.date} ${item.id.slice(0, 8)} 결과 열기`}
+              >
+                결과 열기 ›
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : !loading && !error ? (
-        <EmptyState
-          title="저장된 분석이 없습니다"
-          description="분석을 요청하면 접수 내역과 확인된 결과를 이곳에서 찾을 수 있습니다."
-        />
+        <section className="ed-empty">
+          <h2>저장된 분석이 없습니다.</h2>
+          <p>
+            분석을 요청하면 접수 내역과 확인된 결과를 이곳에서 찾을 수 있습니다.
+          </p>
+        </section>
       ) : null}
     </section>
   );

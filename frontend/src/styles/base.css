@@ -32,7 +32,7 @@ a {
   outline-offset: 3px;
 }
 *:focus-visible {
-  outline: 3px solid #146fbb;
+  outline: 3px solid var(--focus);
 }
 input,
 select,
@@ -98,10 +98,10 @@ html {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--scroll-thumb);
-  border-radius: 5px;
+  border-radius: var(--control-radius);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #78909f;
+  background: var(--muted);
 }
 @media (forced-colors: active) {
   * {
