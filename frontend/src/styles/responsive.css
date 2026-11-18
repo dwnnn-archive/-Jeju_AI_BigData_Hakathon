@@ -254,10 +254,6 @@
     margin-left: auto;
     min-height: 44px;
   }
-  .result-context {
-    flex-wrap: wrap;
-    font-size: 11px;
-  }
   .section-heading {
     margin-bottom: 16px;
   }

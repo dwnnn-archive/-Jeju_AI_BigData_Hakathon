@@ -4,6 +4,7 @@ import { DraftView } from "./DraftView";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { blockLabels, canReview } from "../analysis/state";
+import { conditionFacts } from "../analysis/RunConditions";
 import type { AnalysisRun, Transport } from "../analysis/types";
 
 type Props = {
@@ -112,6 +113,12 @@ export function ApprovalPanel({
               : "선택된 분석 없음"}
           </strong>
         </div>
+        {conditionFacts(run).map(({ label, value }) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
         <div>
           <span>운영 검증</span>
           <strong>미완료 · 실제 조치 불가</strong>

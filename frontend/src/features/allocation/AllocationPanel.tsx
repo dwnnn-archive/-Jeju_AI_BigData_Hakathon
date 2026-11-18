@@ -1,5 +1,6 @@
 import type { AnalysisRun } from "../analysis/types";
 import { fmt, pad } from "../analysis/FlowChart";
+import { RunConditions } from "../analysis/RunConditions";
 
 const resources = [
   { key: "bess", name: "ESS 충전", detail: "대형 ESS · BESS" },
@@ -43,6 +44,7 @@ export function AllocationPanel({
     : "피크 1시간";
   return (
     <>
+      <RunConditions run={run} />
       <section className="dv-alloc ed-alloc" aria-labelledby="ed-alloc-title">
         <div>
           <h2 id="ed-alloc-title">

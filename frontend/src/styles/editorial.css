@@ -99,17 +99,6 @@ main.main--editorial {
   font-size: var(--font-body-3);
   color: var(--text-sub);
 }
-.main--editorial .result-context {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-16);
-  margin-top: var(--space-12);
-  padding: 0;
-  background: none;
-  border: 0;
-  font-size: var(--font-body-3);
-  color: var(--text-sub);
-}
 .main--editorial > .notice {
   margin-top: var(--space-16);
 }
@@ -215,6 +204,17 @@ main.main--editorial {
 .ed-alloc li > div {
   flex: 1;
   min-width: 0;
+}
+/* 자원 이름(ESS 충전 등)을 크게, 가용량 근거 문구를 작게 */
+.ed-alloc li > div > strong {
+  font-size: 30px;
+  font-weight: var(--weight-medium);
+}
+.ed-alloc li > div > p {
+  margin-top: var(--space-8);
+  font-size: var(--font-title);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: normal;
 }
 .ed-meter {
   display: block;
@@ -712,7 +712,8 @@ main.main--editorial {
 }
 .ed-conditions .seg-option {
   flex: 1 1 0;
-  min-width: 0;
+  /* 글자보다 좁아지지 않게: 칸이 모자라면 잘리지 않고 다음 줄로 넘어간다 */
+  min-width: max-content;
 }
 .ed-conditions .seg-option span {
   justify-content: center;
@@ -739,4 +740,37 @@ main.main--editorial {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 분석 조건 카드 줄: 발전량 예측·자원 배분 화면 상단 */
+.run-conditions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 0 0 var(--space-32);
+}
+.run-conditions > div {
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: var(--apple-gray, #f5f5f7);
+}
+.run-conditions dt {
+  font-size: var(--font-body-3);
+  color: var(--text-sub);
+}
+.run-conditions dd {
+  margin: var(--space-8) 0 0;
+  font-size: var(--font-title);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 900px) {
+  .run-conditions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .run-conditions {
+    grid-template-columns: 1fr;
+  }
 }

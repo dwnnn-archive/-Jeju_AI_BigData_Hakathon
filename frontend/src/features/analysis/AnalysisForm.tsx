@@ -10,8 +10,8 @@ export const regions = {
   jocheon: "조천",
   haengwon: "행원",
 };
-const modes = { demo: "시연 데이터", live: "외부 데이터 · 검증 전" };
-const scenarios = {
+export const modes = { demo: "시연 데이터", live: "외부 데이터 · 검증 전" };
+export const scenarios = {
   critical: "위험일",
   normal: "정상일",
   boundary: "경계 재조회",

@@ -21,18 +21,6 @@
   min-height: var(--button-sm);
   padding: 0 var(--space-12);
 }
-.result-context {
-  font-size: 12px;
-  color: var(--muted);
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.result-context strong {
-  font-weight: 600;
-  color: var(--text);
-}
 .forecast-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 285px;

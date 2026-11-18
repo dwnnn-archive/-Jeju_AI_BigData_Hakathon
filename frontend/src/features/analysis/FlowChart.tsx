@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { AnalysisRun } from "./types";
 
 export type Hourly = NonNullable<AnalysisRun["result"]>["hourly"];
@@ -102,43 +102,147 @@ export function FlowChart({
       ? "수요"
       : `수요의 ${Math.round(warningRatio * 100)}% 대응 기준`;
   const span = surplusSpan(rows);
+  const [active, setActive] = useState<number | null>(null);
+  const activeRow = active == null ? undefined : rows[active];
+  const hourAt = (event: PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(
+      Math.max((event.clientX - box.left) / box.width, 0),
+      1,
+    );
+    return Math.round(ratio * (rows.length - 1));
+  };
+  const onKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    setActive((current) =>
+      Math.min(Math.max((current ?? -step) + step, 0), rows.length - 1),
+    );
+  };
+  // 위치는 SVG 좌표(0..W, 0..H)를 백분율로 바꿔 HTML 위에 겹친다(원이 찌그러지지 않게).
+  const pctX = (h: number) => `${(x(h) / W) * 100}%`;
+  const pctY = (v: number) => `${(y(v) / H) * 100}%`;
   return (
     <figure className="flow-chart">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={
-          span
-            ? `시간별 발전량과 수요. ${span[0]}시부터 ${span[1]}시까지 발전량이 ${basis}보다 많습니다.`
-            : `시간별 발전량과 수요. 발전량이 ${basis}를 넘는 시간이 없습니다.`
-        }
+      <div
+        className="flow-plot"
+        tabIndex={0}
+        role="group"
+        aria-label="시간대별 수치 보기: 마우스를 올리거나 좌우 화살표 키로 시간을 옮깁니다."
+        onPointerMove={(e) => setActive(hourAt(e))}
+        onPointerDown={(e) => setActive(hourAt(e))}
+        onPointerLeave={() => setActive(null)}
+        onFocus={() => setActive((current) => current ?? 0)}
+        onBlur={() => setActive(null)}
+        onKeyDown={onKey}
       >
-        <defs>
-          <clipPath id={clipId}>
-            <path d={`${boundary} L${W},0 L0,0 Z`} />
-          </clipPath>
-        </defs>
-        {[top, (top + bottom) / 2, bottom].map((gy) => (
-          <line key={gy} x1="0" x2={W} y1={gy} y2={gy} className="flow-grid" />
-        ))}
-        <path
-          d={`${gen} L${W},${H} L0,${H} Z`}
-          className="flow-surplus"
-          clipPath={`url(#${clipId})`}
-        />
-        <path d={dem} className="flow-demand" />
-        {warningRatio != null && (
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={
+            span
+              ? `시간별 발전량과 수요. ${span[0]}시부터 ${span[1]}시까지 발전량이 ${basis}보다 많습니다.`
+              : `시간별 발전량과 수요. 발전량이 ${basis}를 넘는 시간이 없습니다.`
+          }
+        >
+          <defs>
+            <clipPath id={clipId}>
+              <path d={`${boundary} L${W},0 L0,0 Z`} />
+            </clipPath>
+          </defs>
+          {[top, (top + bottom) / 2, bottom].map((gy) => (
+            <line
+              key={gy}
+              x1="0"
+              x2={W}
+              y1={gy}
+              y2={gy}
+              className="flow-grid"
+            />
+          ))}
           <path
-            d={boundary}
-            fill="none"
-            stroke="#956100"
-            strokeWidth="2"
-            strokeDasharray="3 5"
+            d={`${gen} L${W},${H} L0,${H} Z`}
+            className="flow-surplus"
+            clipPath={`url(#${clipId})`}
           />
+          <path d={dem} className="flow-demand" />
+          {warningRatio != null && (
+            <path
+              d={boundary}
+              fill="none"
+              stroke="#956100"
+              strokeWidth="2"
+              strokeDasharray="3 5"
+            />
+          )}
+          <path d={gen} className="flow-generation" />
+        </svg>
+        {activeRow && (
+          <div className="flow-hover" aria-live="polite">
+            <span
+              className="flow-hover-line"
+              style={{ left: pctX(activeRow.hour) }}
+            />
+            <span
+              className="flow-hover-dot flow-hover-dot--demand"
+              style={{
+                left: pctX(activeRow.hour),
+                top: pctY(activeRow.demand_mwh),
+              }}
+            />
+            {warningRatio != null && (
+              <span
+                className="flow-hover-dot flow-hover-dot--boundary"
+                style={{
+                  left: pctX(activeRow.hour),
+                  top: pctY(activeRow.demand_mwh * warningRatio),
+                }}
+              />
+            )}
+            <span
+              className="flow-hover-dot flow-hover-dot--generation"
+              style={{
+                left: pctX(activeRow.hour),
+                top: pctY(activeRow.generation_mwh),
+              }}
+            />
+            <div
+              className={
+                "flow-tooltip" +
+                (activeRow.hour > rows.length / 2 ? " flow-tooltip--left" : "")
+              }
+              style={{ left: pctX(activeRow.hour) }}
+            >
+              <strong>
+                {pad(activeRow.hour)}:00–{pad((activeRow.hour + 1) % 24)}:00
+              </strong>
+              <dl>
+                <dt className="is-generation">발전량</dt>
+                <dd>{fmt(activeRow.generation_mwh)} MWh</dd>
+                <dt className="is-demand">수요</dt>
+                <dd>{fmt(activeRow.demand_mwh)} MWh</dd>
+                {warningRatio != null && (
+                  <>
+                    <dt className="is-boundary">
+                      기준({Math.round(warningRatio * 100)}%)
+                    </dt>
+                    <dd>{fmt(activeRow.demand_mwh * warningRatio)} MWh</dd>
+                  </>
+                )}
+                <dt>잉여</dt>
+                <dd>{fmt(activeRow.surplus_mwh)} MWh</dd>
+                <dt>발전/수요</dt>
+                <dd>
+                  {Math.round(activeRow.ratio * 100)}% ·{" "}
+                  {riskNames[activeRow.risk]}
+                </dd>
+              </dl>
+            </div>
+          </div>
         )}
-        <path d={gen} className="flow-generation" />
-      </svg>
+      </div>
       {warningRatio != null && (
         <figcaption className="dv-caption">
           갈색 점선: 수요의 {Math.round(warningRatio * 100)}% 대응 기준 · 음영:
