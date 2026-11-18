@@ -264,3 +264,28 @@ test("intraday check button: normal day-ahead → 1st normal → 2nd critical �
   // 위험이 나온 뒤에는 점검 버튼이 사라진다.
   await expect(check).toHaveCount(0);
 });
+
+test("question panel: asks about the result and labels the answer source", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("한림").check({ force: true }); // 다른 테스트와 기록이 섞이지 않게 한다
+  await page.getByRole("button", { name: "분석 요청", exact: true }).click();
+  await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
+    "계산 완료",
+    { timeout: 15000 },
+  );
+  const panel = page.getByRole("region", { name: "결과에 대해 물어보기" });
+  await expect(panel).toBeVisible();
+  await panel
+    .getByRole("textbox", { name: "질문" })
+    .fill("배분은 어떻게 되나요?");
+  await panel.getByRole("button", { name: "질문하기" }).click();
+  // AI 키가 없는 환경이므로 기본 답변이고, 그 사실과 이유를 화면에 밝힌다.
+  await expect(panel.getByText("기본 답변", { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(panel.getByText(/AI 연결 키가 없어/)).toBeVisible();
+  await expect(panel.getByText(/수소 환산/)).toBeVisible();
+});

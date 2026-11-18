@@ -20,6 +20,7 @@ function apiMock(): Api {
     decide: vi.fn(),
     list: vi.fn(),
     checkLogin: vi.fn(),
+    chat: vi.fn(),
   };
 }
 function visibility(hidden: boolean) {

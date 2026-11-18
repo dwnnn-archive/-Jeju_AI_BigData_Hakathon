@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { chatSchema } from "../features/chat/types";
 import {
   runSchema,
   summarySchema,
@@ -19,13 +20,14 @@ export function createApi(key: string) {
     path: string,
     init: RequestInit = {},
     approver?: string,
+    timeoutMs = 8000,
   ): Promise<unknown> {
     let response: Response;
     try {
       response = await fetch(base + "/api/v1" + path, {
         ...init,
         cache: "no-store",
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(timeoutMs),
         headers: {
           "Content-Type": "application/json",
           ...(key ? { "X-API-Key": key } : {}),
@@ -74,6 +76,19 @@ export function createApi(key: string) {
           body: JSON.stringify(body),
         }),
       ),
+    // LLM이 도구를 고르며 여러 번 조회하므로 일반 요청보다 오래 기다린다.
+    chat: async (id: string, message: string) => {
+      const data = await request(
+        "/analyses/" + encodeURIComponent(id) + "/chat",
+        { method: "POST", body: JSON.stringify({ message }) },
+        undefined,
+        60000,
+      );
+      const parsed = chatSchema.safeParse(data);
+      if (!parsed.success)
+        throw new ApiError("질문 답변의 형식을 확인하지 못했습니다.");
+      return parsed.data;
+    },
     checkLogin: async (approverId: string, token: string) => {
       try {
         const data = await request(

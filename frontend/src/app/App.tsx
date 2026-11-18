@@ -29,6 +29,7 @@ import { LoginPage, type Session } from "../pages/LoginPage";
 import { AllocationPanel } from "../features/allocation/AllocationPanel";
 import { ApprovalPanel } from "../features/approval/ApprovalPanel";
 import { HistoryPanel } from "../features/history/HistoryPanel";
+import { ChatPanel } from "../features/chat/ChatPanel";
 
 type Step = "forecast" | "allocation" | "approval";
 type Page = "landing" | "login" | "dashboard" | Step | "history";
@@ -452,6 +453,7 @@ export function App() {
               onSelect={openItem}
             />
           )}
+          {activeStep && <ChatPanel run={run} ask={api.chat} />}
           {run?.sources &&
             Object.keys(run.sources).length > 0 &&
             activeStep && (
