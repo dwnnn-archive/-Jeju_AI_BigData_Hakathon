@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { createApi } from "../api/client";
 import { useAnalysis } from "../features/analysis/useAnalysis";
-import { AnalysisForm, regions } from "../features/analysis/AnalysisForm";
+import { AnalysisForm } from "../features/analysis/AnalysisForm";
 import type {
   AnalysisRequest,
   AnalysisSummary,
@@ -366,18 +366,6 @@ export function App() {
                       </Button>
                     </>
                   )}
-                </div>
-              )}
-              {run && (
-                <div className="result-context">
-                  <span>
-                    표시된 결과의 대상:{" "}
-                    <strong>
-                      {run.request.date} · {regions[run.request.region]}
-                    </strong>{" "}
-                    · {run.simulation ? "시연 데이터" : "외부 데이터"}
-                  </span>
-                  <span className="mono">ID {run.id.slice(0, 8)}</span>
                 </div>
               )}
               {!matches && (

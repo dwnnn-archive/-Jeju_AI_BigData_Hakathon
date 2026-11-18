@@ -273,6 +273,93 @@
   height: 300px;
   overflow: visible;
 }
+/* Hover: 시간대별 수치 */
+.flow-plot {
+  position: relative;
+  cursor: crosshair;
+  touch-action: pan-y;
+  border-radius: 4px;
+}
+.flow-plot:focus-visible {
+  outline: 2px solid var(--dv-chart);
+  outline-offset: 6px;
+}
+.flow-hover {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.flow-hover-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--muted);
+  opacity: 0.5;
+}
+.flow-hover-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 8%);
+}
+.flow-hover-dot--generation {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: var(--dv-chart);
+}
+.flow-hover-dot--demand {
+  background: var(--muted);
+}
+.flow-hover-dot--boundary {
+  background: #956100;
+}
+.flow-tooltip {
+  position: absolute;
+  top: 28px; /* 위쪽 '잉여 발생' 표시를 가리지 않게 */
+  z-index: 2;
+  min-width: 180px;
+  margin-left: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(17 17 17 / 12%);
+  font-size: var(--font-body-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.flow-tooltip--left {
+  transform: translateX(-100%);
+  margin-left: -14px;
+}
+.flow-tooltip strong {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: var(--weight-medium);
+}
+.flow-tooltip dl {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 16px;
+  margin: 0;
+}
+.flow-tooltip dt {
+  color: var(--text-sub);
+}
+.flow-tooltip dt.is-generation {
+  color: var(--dv-chart);
+}
+.flow-tooltip dt.is-boundary {
+  color: #956100;
+}
+.flow-tooltip dd {
+  margin: 0;
+  text-align: right;
+}
 .flow-grid {
   stroke: var(--dv-line);
   stroke-width: 1;

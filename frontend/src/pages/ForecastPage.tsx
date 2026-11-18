@@ -1,5 +1,6 @@
 import type { AnalysisRun } from "../features/analysis/types";
 import { labels, phaseLabel } from "../features/analysis/state";
+import { RunConditions } from "../features/analysis/RunConditions";
 import {
   FlowChart,
   RiskStrip,
@@ -40,6 +41,7 @@ export function ForecastPage({
   const peak = `${pad(result.peak_hour)}:00–${pad((result.peak_hour + 1) % 24)}:00`;
   return (
     <>
+      <RunConditions run={run} />
       <p className="dv-caption">
         {phaseLabel(run.phase ?? run.request.phase, run.check_no)}
         {result.from_hour != null ? ` · ${result.from_hour}시 이후 판정` : ""}
