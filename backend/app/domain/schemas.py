@@ -57,6 +57,10 @@ class Decision(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
 
+class LoginCheck(StrictModel):
+    approver_id: str = Field(min_length=1, max_length=100)
+
+
 class ChatRequest(StrictModel):
     message: str = Field(min_length=1, max_length=1000)
 

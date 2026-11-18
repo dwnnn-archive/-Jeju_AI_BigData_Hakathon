@@ -9,10 +9,12 @@ import {
   LogOut,
   Settings2,
   RefreshCw,
+  SunMedium,
 } from "lucide-react";
 import { createApi } from "../api/client";
 import { useAnalysis } from "../features/analysis/useAnalysis";
 import { AnalysisForm } from "../features/analysis/AnalysisForm";
+import { canIntradayCheck } from "../features/analysis/state";
 import type {
   AnalysisRequest,
   AnalysisSummary,
@@ -130,6 +132,12 @@ export function App() {
         run?.status || "queued",
       )),
   );
+  const intradayReady = canIntradayCheck(run, transport);
+  function requestIntraday() {
+    if (!run) return;
+    setFormError("");
+    void analysis.submit({ ...run.request, phase: "intraday" });
+  }
   const loadHistory = useCallback(async () => {
     const sequence = ++historySequence.current;
     setHistoryBusy(true);
@@ -322,6 +330,14 @@ export function App() {
                     {formError}
                   </p>
                 )}
+                {form.mode === "demo" &&
+                  form.scenario === "intraday_escalation" && (
+                    <p className="dv-caption">
+                      대상일이 오늘로 맞춰집니다. 분석 요청으로 하루 전
+                      계획(정상)을 만든 뒤 <strong>당일 점검 요청</strong>을
+                      눌러 1차(정상), 2차(위험) 점검을 차례로 확인하세요.
+                    </p>
+                  )}
                 <p className="ed-mode">
                   <strong>
                     {form.mode === "demo"
@@ -339,6 +355,16 @@ export function App() {
                   서버 마지막 확인{" "}
                   <strong>{formatTime(analysis.lastConfirmed)}</strong>
                 </span>
+                {intradayReady && (
+                  <Button
+                    variant="secondary"
+                    disabled={unresolved || transport === "sending"}
+                    onClick={requestIntraday}
+                  >
+                    <SunMedium size={14} aria-hidden="true" />
+                    당일 점검 요청
+                  </Button>
+                )}
                 {active && (
                   <Button
                     variant="ghost"

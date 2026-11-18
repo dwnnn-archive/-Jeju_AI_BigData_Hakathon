@@ -227,3 +227,42 @@ test("history does not claim there are no records before the server responds", a
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByText("저장된 분석이 없습니다")).toHaveCount(0);
 });
+
+test("intraday check button: normal day-ahead → 1st normal → 2nd critical → approval", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("당일 위험 전환").check({ force: true });
+  await page.getByLabel("행원").check({ force: true }); // 다른 테스트와 기록이 섞이지 않게 한다
+  const status = page.getByRole("status", { name: "분석 상태" });
+  await page.getByRole("button", { name: "분석 요청", exact: true }).click();
+  await expect(status).toContainText("계산 완료", { timeout: 15000 });
+  await expect(page.getByText("정상 범위").first()).toBeVisible();
+  // 하루 업무 흐름: 하루 전 분석은 끝났고 1차 점검이 다음 단계다.
+  const flow = page.getByRole("list", { name: "담당자 하루 업무 흐름" });
+  await expect(flow.locator(".workday-step--current")).toContainText(
+    "1차 점검",
+  );
+
+  const check = page.getByRole("button", { name: "당일 점검 요청" });
+  await check.click();
+  await expect(page.getByText("당일 1차 점검").first()).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(status).toContainText("계산 완료", { timeout: 15000 });
+  await expect(flow.locator(".workday-step--current")).toContainText(
+    "2차 점검",
+  );
+
+  await check.click();
+  await expect(page.getByText("당일 2차 점검").first()).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(status).toContainText("검토 필요", { timeout: 15000 });
+  await expect(flow.locator(".workday-step--current")).toContainText(
+    "담당자 검토",
+  );
+  // 위험이 나온 뒤에는 점검 버튼이 사라진다.
+  await expect(check).toHaveCount(0);
+});

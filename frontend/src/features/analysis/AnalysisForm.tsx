@@ -2,6 +2,7 @@ import { useId } from "react";
 import type { AnalysisRequest } from "./types";
 import { Button } from "../../components/Button";
 import { DateField } from "../../components/DateField";
+import { todayKst } from "./state";
 import { Play, CalendarDays } from "lucide-react";
 
 export const regions = {
@@ -111,7 +112,15 @@ export function AnalysisForm({
           name={`${id}-scenario`}
           options={scenarios}
           value={value.scenario}
-          onChange={(scenario) => onChange({ ...value, scenario })}
+          onChange={(scenario) =>
+            onChange({
+              ...value,
+              scenario,
+              ...(scenario === "intraday_escalation"
+                ? { date: todayKst() }
+                : {}),
+            })
+          }
         />
       )}
       <Button
