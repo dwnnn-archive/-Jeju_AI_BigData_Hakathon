@@ -7,8 +7,8 @@ export const labels: Record<AnalysisRun["status"], string> = {
   interrupted: "실행 중단 확인",
   awaiting_approval: "계산 완료 · 검토 필요",
   completed: "계산 완료",
-  approved: "검토 승인됨",
-  rejected: "반려됨",
+  approved: "발송 확정됨",
+  rejected: "발송 보류됨",
   failed: "분석 실패",
   decision_pending: "결정 처리 확인 필요",
 };
@@ -135,8 +135,8 @@ export function workdaySteps(run: AnalysisRun | null): WorkdayStep[] {
     {
       key: "review",
       time: "위험 판정 즉시",
-      title: "담당자 검토·승인",
-      detail: "배분 권고와 통보문 초안 확인 후 승인 또는 반려",
+      title: "담당자 통보문 확인",
+      detail: "배분 권고와 통보문 초안 확인 후 발송 확정 또는 보류",
     },
     {
       key: "notify",

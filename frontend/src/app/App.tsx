@@ -51,10 +51,11 @@ const steps = [
   },
   {
     id: "approval",
-    label: "승인 관리",
-    short: "검토·승인",
-    headline: "검토와 결정",
-    description: "이 분석 결과에 대해 담당자가 시연 승인 또는 반려를 남깁니다.",
+    label: "통보문 확인",
+    short: "통보문",
+    headline: "통보문 확인",
+    description:
+      "AI가 만든 통보문 초안을 담당자가 확인하고, 발송 여부를 정합니다.",
   },
 ] as const;
 const nav = [

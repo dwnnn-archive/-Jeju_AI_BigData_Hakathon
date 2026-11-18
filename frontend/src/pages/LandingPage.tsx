@@ -44,13 +44,13 @@ const slides: {
     target: "allocation",
   },
   {
-    label: "검토·승인",
-    title: ["담당자가 확인한 결과만", "결정으로 남깁니다"],
+    label: "통보문 확인",
+    title: ["AI가 통보문 초안을 쓰고", "담당자가 발송을 정합니다"],
     points: [
-      "검토 근거와 실행 기록을 결정과 함께 보관",
-      "시연 모드에서는 실제 설비에 명령을 보내지 않음",
+      "발송 결정과 사유, 실행 기록을 함께 보관",
+      "시연 모드에서는 실제 문자·설비 명령을 보내지 않음",
     ],
-    cta: "검토·승인 하러 가기",
+    cta: "통보문 확인하러 가기",
     target: "approval",
   },
 ];
@@ -69,7 +69,7 @@ export function LandingPage({
   onOpenSettings: () => void;
 }) {
   // Slides follow page scroll: the hero is sticky inside a tall track and
-  // each third of the track shows the next step (예측 → 배분 → 검토·승인).
+  // each third of the track shows the next step (예측 → 배분 → 통보문 확인).
   const track = useRef<HTMLElement>(null);
   const [index, setIndex] = useState(0);
   useEffect(() => {
@@ -197,7 +197,7 @@ export function LandingPage({
             <li>
               <button onClick={() => onNavigate("approval")}>
                 <ShieldCheck size={22} aria-hidden="true" />
-                검토·승인
+                통보문 확인
               </button>
             </li>
             <li>

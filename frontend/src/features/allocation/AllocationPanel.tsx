@@ -200,7 +200,7 @@ export function AllocationPanel({
             <button type="button" className="ed-stepnav-next" onClick={onNext}>
               다음 단계
               <strong>
-                검토·승인 <span aria-hidden="true">›</span>
+                통보문 확인 <span aria-hidden="true">›</span>
               </strong>
             </button>
           )}
