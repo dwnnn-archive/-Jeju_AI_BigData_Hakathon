@@ -70,3 +70,37 @@ it("re-measure calls back, and drafting is blocked while the server state is unc
   rerender(<ApprovalPanel {...props} transport="unknown" />);
   expect(screen.getByRole("button", { name: /통보문 작성/ })).toBeDisabled();
 });
+
+it("records the officer's confirmation once, without login, and then shows the record", async () => {
+  const onConfirm = vi.fn().mockResolvedValue(undefined);
+  const { rerender, props } = setup({ onConfirm });
+  fireEvent.click(screen.getByRole("button", { name: /통보문 작성/ }));
+  expect(screen.getByText("담당자 확인")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "확인했습니다" }));
+  await waitFor(() => expect(onConfirm).toHaveBeenCalledOnce());
+  // 서버 기록이 반영되면 버튼 대신 확인 기록이 보인다
+  rerender(
+    <ApprovalPanel
+      {...props}
+      onConfirm={onConfirm}
+      run={runFixture({
+        confirmation: { confirmed_at: "2026-11-20T03:12:00+09:00" },
+      })}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /통보문 작성/ }));
+  expect(screen.getByText("담당자 확인 완료")).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "확인했습니다" }),
+  ).not.toBeInTheDocument();
+});
+
+it("shows an error when the confirmation could not be recorded", async () => {
+  const onConfirm = vi.fn().mockRejectedValue(new Error("기록 실패"));
+  setup({ onConfirm });
+  fireEvent.click(screen.getByRole("button", { name: /통보문 작성/ }));
+  fireEvent.click(screen.getByRole("button", { name: "확인했습니다" }));
+  await waitFor(() =>
+    expect(screen.getByRole("alert")).toHaveTextContent("기록 실패"),
+  );
+});

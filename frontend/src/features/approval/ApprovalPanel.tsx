@@ -22,6 +22,8 @@ type Props = {
   busy: boolean;
   onRemeasure: () => void;
   regenerate: (id: string, previous?: string) => Promise<DraftAnswer>;
+  /** 담당자가 통보문을 확인했다고 한 번 기록한다(로그인·발송 없음). */
+  onConfirm?: () => Promise<void>;
 };
 
 /** 통보문을 받을 대상. 사전 정보 제공이며 실제 문자는 기관 시스템으로 발송한다. */
@@ -60,6 +62,7 @@ export function ApprovalPanel({
   busy,
   onRemeasure,
   regenerate,
+  onConfirm,
 }: Props) {
   const runId = run?.id;
   const [shown, setShown] = useState(false);
@@ -67,11 +70,14 @@ export function ApprovalPanel({
   const [rewriting, setRewriting] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
   // 다른 분석을 보면 이전 분석의 통보문을 이어 보이지 않는다.
   useEffect(() => {
     setShown(false);
     setOverride(null);
     setError("");
+    setConfirmError("");
   }, [runId, run?.result_token]);
   const ready = Boolean(
     run?.result && run.draft && transport === "confirmed" && matches,
@@ -89,6 +95,22 @@ export function ApprovalPanel({
       );
     } finally {
       setRewriting(false);
+    }
+  }
+  async function confirmDraft() {
+    if (!onConfirm || confirming) return;
+    setConfirming(true);
+    setConfirmError("");
+    try {
+      await onConfirm();
+    } catch (cause) {
+      setConfirmError(
+        cause instanceof Error
+          ? cause.message
+          : "확인 기록을 남기지 못했습니다.",
+      );
+    } finally {
+      setConfirming(false);
     }
   }
   async function copyDraft() {
@@ -216,6 +238,46 @@ export function ApprovalPanel({
           {error && (
             <p role="alert" className="notice notice--warning">
               {error}
+            </p>
+          )}
+          <div className="confirm-box">
+            {run?.confirmation ? (
+              <>
+                <ShieldCheck size={18} aria-hidden="true" />
+                <div>
+                  <strong>담당자 확인 완료</strong>
+                  <p>
+                    {new Intl.DateTimeFormat("ko-KR", {
+                      timeZone: "Asia/Seoul",
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(run.confirmation.confirmed_at))}
+                    {" · 로그인 없이 남긴 확인 기록입니다."}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <strong>담당자 확인</strong>
+                  <p>
+                    통보문 내용을 확인했으면 기록을 남깁니다. 로그인은 필요
+                    없고, 기록만 남을 뿐 문자는 발송되지 않습니다.
+                  </p>
+                </div>
+                <Button
+                  busy={confirming}
+                  disabled={!ready || !onConfirm}
+                  onClick={() => void confirmDraft()}
+                >
+                  확인했습니다
+                </Button>
+              </>
+            )}
+          </div>
+          {confirmError && (
+            <p role="alert" className="notice notice--warning">
+              {confirmError}
             </p>
           )}
           <p className="caption">

@@ -29,6 +29,10 @@ class JobRepository:
                 );
                 CREATE INDEX IF NOT EXISTS jobs_pending ON jobs(status, sequence);
                 CREATE INDEX IF NOT EXISTS jobs_scope ON jobs(scope, sequence);
+                CREATE TABLE IF NOT EXISTS confirmations (
+                    analysis_id TEXT PRIMARY KEY, confirmed_at TEXT NOT NULL,
+                    result_token TEXT NOT NULL
+                );
             """)
 
     @contextmanager
@@ -151,6 +155,33 @@ class JobRepository:
                 "SELECT MAX(sequence) FROM jobs WHERE scope=?", (row["scope"],)
             ).fetchone()[0]
             return row["sequence"] == latest
+
+    def confirmation(self, run_id):
+        """담당자가 통보문을 확인했다고 남긴 기록(없으면 None)."""
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT confirmed_at FROM confirmations WHERE analysis_id=?", (run_id,)
+            ).fetchone()
+            return {"confirmed_at": row[0]} if row else None
+
+    def confirm(self, run_id, result_token):
+        """확인 기록을 한 번만 남긴다. 같은 분석을 다시 확인해도 처음 기록을 돌려준다."""
+        with self.connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT result_token FROM jobs WHERE id=?", (run_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(run_id)
+            if not row[0] or row[0] != result_token:
+                raise ValueError("result_token_mismatch")
+            inserted = conn.execute(
+                "INSERT OR IGNORE INTO confirmations VALUES (?, ?, ?)",
+                (run_id, iso_now(), result_token),
+            ).rowcount
+            if inserted:
+                conn.execute("UPDATE jobs SET version=version+1 WHERE id=?", (run_id,))
+        return self.confirmation(run_id)
 
     def reserve_decision(self, run_id, decision):
         """Commit intent and non-reviewable public state before touching graph checkpoints."""

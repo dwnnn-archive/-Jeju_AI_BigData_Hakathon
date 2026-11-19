@@ -587,3 +587,15 @@
   display: block;
   margin-top: 2px;
 }
+
+/* 배분 카드: 제목·부제·막대 아래에 출처를 작은 회색 글씨로 */
+.dv-alloc li .alloc-source {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.dv-alloc li .alloc-source b {
+  font-weight: var(--weight-semibold);
+  color: var(--text-sub);
+}

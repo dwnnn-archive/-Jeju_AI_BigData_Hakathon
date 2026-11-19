@@ -40,6 +40,8 @@ const decision = z.object({
   reason: z.string(),
   actor: z.string(),
 });
+/** 담당자가 통보문을 확인했다고 남긴 기록(로그인·발송 없음). */
+const confirmation = z.object({ confirmed_at: z.string() });
 export const runSchema = z
   .object({
     id: z.string().uuid(),
@@ -146,6 +148,7 @@ export const runSchema = z
       })
       .nullable(),
     draft: z.string().nullable(),
+    confirmation: confirmation.nullable().optional(),
     decision: decision.nullable(),
     decision_intent: decision.nullable(),
     notification: z
@@ -221,6 +224,7 @@ export const summarySchema = z.object({
   simulation: z.boolean(),
   phase: z.enum(["day_ahead", "intraday"]).optional(),
   check_no: z.number().int().nonnegative().optional(),
+  confirmation: confirmation.nullable().optional(),
 });
 export type AnalysisRun = z.infer<typeof runSchema>;
 export type AnalysisRequest = z.infer<typeof requestSchema>;

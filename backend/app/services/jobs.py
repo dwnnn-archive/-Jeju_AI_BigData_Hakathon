@@ -159,6 +159,7 @@ class JobService:
             "decision": snapshot.get("decision"),
             "decision_intent": snapshot.get("decision_intent"),
             "notification": snapshot.get("notification"),
+            "confirmation": self.jobs.confirmation(row["id"]),
             "sources": snapshot.get("sources", {}),
         }
         if summary:
@@ -294,6 +295,14 @@ class JobService:
                 {"decision": json.loads(row["decision"]), "created_at": row["created_at"]}
                 for row in conn.execute("SELECT * FROM audit WHERE analysis_id=?", (run_id,))
             ]
+
+    def confirm(self, run_id, result_token):
+        """담당자가 이 결과의 통보문을 확인했다는 기록을 한 번 남긴다(로그인·발송 없음)."""
+        row = self.jobs.get(run_id)
+        if row["status"] not in ("awaiting_approval", "completed", "approved", "rejected"):
+            raise ConflictError("The analysis has no result to confirm")
+        self.jobs.confirm(run_id, result_token)
+        return self.get(run_id)
 
     def regenerate_draft(self, run_id, previous=None):
         """통보문을 AI로 새로 쓴다. 분석 결과와 저장된 초안은 건드리지 않고 새 문안만 돌려준다."""

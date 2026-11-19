@@ -59,6 +59,10 @@ class Decision(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
 
+class ConfirmRequest(StrictModel):
+    result_token: str = Field(min_length=64, max_length=64)
+
+
 class DraftRequest(StrictModel):
     previous: str | None = Field(default=None, max_length=3000)
 

@@ -774,3 +774,260 @@ main.main--editorial {
     grid-template-columns: 1fr;
   }
 }
+
+/* 분석 조건: 단계 탭 바로 아래, 크기를 줄인 연회색 상자 안에 선택 사항을 모은다 */
+section.ed-conditions {
+  margin: var(--space-16) 0 var(--space-20);
+  padding: var(--space-16) var(--space-20);
+  border: 0;
+  border-radius: 18px;
+  background: var(--apple-gray, #f5f5f7);
+}
+section.ed-conditions .analysis-form {
+  gap: var(--space-12) var(--space-24);
+  /* 같은 줄의 항목은 위쪽을 맞춘다(예측 대상일과 분석 지역의 제목·입력칸 높이가 같다) */
+  align-items: start;
+}
+section.ed-conditions .field {
+  gap: var(--space-8);
+}
+section.ed-conditions .seg-field legend,
+section.ed-conditions .field label {
+  line-height: 1.4;
+}
+section.ed-conditions .seg-field legend,
+section.ed-conditions .field label {
+  margin-bottom: var(--space-8);
+  font-size: var(--font-body-3);
+}
+section.ed-conditions input[type="date"] {
+  height: 44px;
+  font-size: var(--font-body-2);
+  border-radius: 12px;
+}
+section.ed-conditions .seg {
+  min-height: 44px;
+  border-radius: 12px;
+}
+section.ed-conditions .seg-option span {
+  min-height: 36px;
+  border-radius: 9px;
+  font-size: var(--font-body-3);
+}
+section.ed-conditions .analysis-form .cond-submit {
+  height: 44px;
+  min-height: 44px;
+  margin-top: var(--space-4);
+  font-size: var(--font-body-2);
+}
+section.ed-conditions .ed-mode {
+  margin-top: var(--space-12);
+  font-size: var(--font-body-4, 12px);
+}
+
+/* 배분 카드: 순위 네모를 제목 옆(위쪽)에 두고, 출처는 제목 글자에 맞춰 아래에 둔다 */
+.ed-alloc li:has(.ed-rank) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "rank body value";
+  align-items: start;
+  column-gap: var(--space-20);
+  row-gap: 0;
+}
+.ed-alloc li .ed-rank {
+  grid-area: rank;
+}
+.ed-alloc li:has(.ed-rank) > div {
+  grid-area: body;
+}
+.ed-alloc li:has(.ed-rank) > p {
+  grid-area: value;
+}
+
+/* 배분 카드 다듬기: 흰 카드, 칩, 막대 트랙 */
+.ed-alloc ul {
+  display: grid;
+  gap: var(--space-12);
+}
+.ed-alloc li:has(.ed-rank) {
+  padding: var(--space-20) var(--space-24);
+  border: 0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 8%);
+}
+section.ed-alloc li:has(.ed-rank):first-child,
+section.ed-alloc li:has(.ed-rank):last-child {
+  /* 첫·마지막 카드도 다른 카드와 같은 안쪽 여백(다른 규칙이 좌우 여백을 바꾸지 못하게) */
+  padding: var(--space-20) var(--space-24);
+}
+.ed-alloc li:has(.ed-rank):first-child {
+  box-shadow:
+    0 0 0 1.5px var(--primary),
+    0 2px 10px rgb(0 0 0 / 6%);
+}
+.ed-alloc li:has(.ed-rank) > div > strong {
+  font-size: 26px;
+  line-height: 1.25;
+}
+.ed-alloc li:has(.ed-rank) > p {
+  align-self: start;
+  padding-top: 2px;
+  font-size: 28px;
+  white-space: nowrap;
+}
+.ed-alloc li:has(.ed-rank) > div > span:not(.alloc-chip) {
+  margin-top: 2px;
+  font-size: var(--font-body-3);
+}
+.ed-alloc li .ed-meter {
+  max-width: none;
+  height: 8px;
+  margin-top: var(--space-12);
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+  background: #ececf0;
+}
+.ed-alloc li .ed-meter::-webkit-meter-bar {
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #ececf0;
+}
+.ed-alloc li .ed-meter::-webkit-meter-optimum-value,
+.ed-alloc li .ed-meter::-webkit-meter-suboptimum-value,
+.ed-alloc li .ed-meter::-webkit-meter-even-less-good-value {
+  border-radius: 999px;
+  background: var(--primary);
+}
+.ed-alloc li .ed-meter::-moz-meter-bar {
+  border-radius: 999px;
+  background: var(--primary);
+}
+.alloc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-12);
+}
+.alloc-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 !important;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ececf0;
+  font-size: 12px !important;
+  font-weight: var(--weight-medium);
+  color: var(--text-sub) !important;
+}
+.alloc-chip--hub,
+.alloc-chip--bess {
+  background: #e3f6ea;
+  color: var(--success-text) !important;
+}
+.alloc-chip--vpp {
+  background: #fff4cc;
+  color: var(--warning-text) !important;
+}
+.alloc-chip--p2x {
+  background: #e8edfb;
+  color: #34479a !important;
+}
+.ed-alloc li .alloc-source {
+  margin-top: var(--space-8);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* 회색 배경이 1~4순위 카드를 모두 감싸도록 사방에 안쪽 여백을 둔다 */
+section.ed-alloc ul {
+  padding: var(--space-16);
+}
+@media (max-width: 640px) {
+  section.ed-alloc ul {
+    padding: var(--space-12);
+  }
+}
+
+/* "왜 이 순서로 채우나요?": 카드 목록 스타일을 물려받지 않고 읽기 좋은 설명 목록으로 */
+.dv-alloc .alloc-why {
+  margin-top: var(--space-20);
+  padding: var(--space-16) var(--space-20);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 8%);
+}
+.dv-alloc .alloc-why summary {
+  font-size: var(--font-body-2);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+.dv-alloc .alloc-why ol {
+  margin: var(--space-12) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: why;
+  display: grid;
+  gap: 0;
+}
+.dv-alloc .alloc-why li {
+  position: relative;
+  display: block;
+  padding: var(--space-12) 0 var(--space-12) 36px;
+  border: 0;
+  border-top: 0.5px solid var(--dv-line);
+  counter-increment: why;
+}
+.dv-alloc .alloc-why li::before {
+  content: counter(why);
+  position: absolute;
+  left: 0;
+  top: var(--space-12);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: #ececf0;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--text-sub);
+}
+.dv-alloc .alloc-why li:first-child::before {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.dv-alloc .alloc-why li strong {
+  display: block;
+  font-size: var(--font-body-2);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+.dv-alloc .alloc-why li span {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-body-3);
+  line-height: 1.65;
+  color: var(--text-sub);
+}
+.dv-alloc .alloc-why > .caption {
+  margin-top: var(--space-12);
+  padding-top: var(--space-12);
+  border-top: 0.5px solid var(--dv-line);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* 첫·마지막 항목도 같은 여백으로(목록용 :first-child 규칙이 왼쪽 여백을 지우지 못하게) */
+.dv-alloc .alloc-why ol > li,
+.dv-alloc .alloc-why ol > li:first-child,
+.dv-alloc .alloc-why ol > li:last-child {
+  padding: var(--space-12) 0 var(--space-12) 36px;
+}
+.dv-alloc .alloc-why ol > li:first-child {
+  border-top: 0;
+}

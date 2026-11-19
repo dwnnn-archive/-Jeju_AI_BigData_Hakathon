@@ -7,6 +7,7 @@ from app.core.auth import require_api_key, require_approver
 from app.domain.schemas import (
     AnalysisRequest,
     ChatRequest,
+    ConfirmRequest,
     DispatchRequest,
     DraftRequest,
     LoginCheck,
@@ -59,6 +60,12 @@ def dispatch(run_id: str, body: DispatchRequest, request: Request, actor: Office
 @router.get("/analyses/{run_id}/audit")
 def audit(run_id: str, request: Request):
     return request.app.state.service.audit(run_id)
+
+
+@router.post("/analyses/{run_id}/confirm")
+def confirm_analysis(run_id: str, body: ConfirmRequest, request: Request):
+    """담당자가 통보문을 확인했다는 기록을 남긴다. 로그인과 발송은 없다."""
+    return request.app.state.service.confirm(run_id, body.result_token)
 
 
 @router.post("/analyses/{run_id}/draft")

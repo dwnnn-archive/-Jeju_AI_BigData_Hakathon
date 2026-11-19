@@ -8,7 +8,7 @@ async function analyze(page: Page) {
   await page.getByLabel("시연 데이터").check({ force: true }); // 기본은 외부 데이터
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
-    "계산 완료 · 검토 필요",
+    "계산 완료 · 통보문 확인 대기",
   );
 }
 
@@ -24,7 +24,7 @@ test("real API: empty → result → draft on demand → AI rewrite, with keyboa
   await expect(page.getByText("230.0", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
-    "계산 완료 · 검토 필요",
+    "계산 완료 · 통보문 확인 대기",
   );
   await expect(
     page.getByRole("img", { name: /시간별 발전량과 수요/ }),
@@ -51,6 +51,17 @@ test("real API: empty → result → draft on demand → AI rewrite, with keyboa
     (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
       .violations,
   ).toEqual([]);
+  // 담당자 확인: 로그인 없이 한 번 기록하고, 기록이 상태에 반영된다.
+  await page.getByRole("button", { name: "확인했습니다" }).click();
+  await expect(
+    page.getByText("담당자 확인 완료", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
+    "담당자 확인 완료",
+  );
+  await expect(page.getByRole("button", { name: "확인했습니다" })).toHaveCount(
+    0,
+  );
   // AI 키가 없는 환경: 새로 쓰기를 눌러도 기본 문안이며, 그 사실을 화면에 밝힌다.
   await page.getByRole("button", { name: /수정/ }).click();
   await expect(page.getByText(/AI 연결 키가 없어 기본 문안/)).toBeVisible({
@@ -228,7 +239,7 @@ test("intraday check button: normal day-ahead → 1st normal → 2nd critical �
   await expect(page.getByText("당일 2차 점검").first()).toBeVisible({
     timeout: 15000,
   });
-  await expect(status).toContainText("검토 필요", { timeout: 15000 });
+  await expect(status).toContainText("통보문 확인 대기", { timeout: 15000 });
   await expect(flow.locator(".workday-step--current")).toContainText(
     "통보문 확인",
   );

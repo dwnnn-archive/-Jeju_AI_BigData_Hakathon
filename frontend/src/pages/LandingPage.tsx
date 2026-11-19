@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
-  ChevronDown,
   CircleCheck,
   History,
   LayoutDashboard,
@@ -214,24 +213,6 @@ export function LandingPage({
             </li>
           </ul>
         </aside>
-
-        <div className="hero-progress" aria-hidden="true">
-          <span className="hero-progress-count">
-            <strong>{String(index + 1).padStart(2, "0")}</strong> /{" "}
-            {String(slides.length).padStart(2, "0")}
-          </span>
-          <span className="hero-progress-bar">
-            <span
-              style={{ width: `${((index + 1) / slides.length) * 100}%` }}
-            />
-          </span>
-          {index < slides.length - 1 && (
-            <span className="hero-scroll-hint">
-              스크롤하면 다음 단계
-              <ChevronDown size={16} />
-            </span>
-          )}
-        </div>
       </div>
     </section>
   );

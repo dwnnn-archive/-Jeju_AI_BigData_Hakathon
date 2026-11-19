@@ -262,3 +262,35 @@ def test_data_sources_separates_past_backtest_from_missing_operational_validatio
     assert all("validated" not in s for s in out["sources"])
     demo = {"simulation": True, "sources": {"generation": {"source": "demo_scenario", "simulated": True}}}
     assert "offline_backtest" not in chat_agent.tool_data_sources(demo, {})
+
+
+def test_confirmation_is_recorded_once_without_login_and_changes_nothing_else(app_client):
+    run = run_critical(app_client)
+    assert run["confirmation"] is None
+    url = f"/api/v1/analyses/{run['id']}/confirm"
+    first = app_client.post(url, json={"result_token": run["result_token"]})
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["confirmation"]["confirmed_at"] and body["version"] == run["version"] + 1
+    # 같은 확인을 다시 눌러도 처음 기록이 그대로이고 버전도 늘지 않는다
+    again = app_client.post(url, json={"result_token": run["result_token"]}).json()
+    assert again["confirmation"] == body["confirmation"] and again["version"] == body["version"]
+    # 발송·결정 상태는 건드리지 않는다
+    assert body["status"] == run["status"] == "awaiting_approval"
+    assert body["decision"] is None and body["notification"] is None
+    listed = app_client.get("/api/v1/analyses").json()
+    assert next(r for r in listed if r["id"] == run["id"])["confirmation"] == body["confirmation"]
+
+
+def test_confirmation_needs_the_current_result_token(app_client):
+    run = run_critical(app_client)
+    out = app_client.post(
+        f"/api/v1/analyses/{run['id']}/confirm", json={"result_token": "0" * 64}
+    )
+    assert out.status_code == 422 and out.json()["detail"] == "result_token_mismatch"
+    assert app_client.get(f"/api/v1/analyses/{run['id']}").json()["confirmation"] is None
+    missing = app_client.post(
+        "/api/v1/analyses/00000000-0000-0000-0000-000000000000/confirm",
+        json={"result_token": "0" * 64},
+    )
+    assert missing.status_code == 404

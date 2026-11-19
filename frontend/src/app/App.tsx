@@ -188,6 +188,22 @@ export function App() {
     setSession({ approverId: confirmed, token });
     setPage(returnTo);
   }
+  // 헤더 아래 선이 메뉴 순서(소개 → 대시보드 → 분석 → 분석 이력)대로 1/4씩 초록색으로 찬다.
+  useEffect(() => {
+    const stage: Partial<Record<Page, number>> = {
+      landing: 1,
+      dashboard: 2,
+      forecast: 3,
+      allocation: 3,
+      approval: 3,
+      history: 4,
+    };
+    const root = document.documentElement;
+    root.style.setProperty("--scroll-progress", String((stage[page] ?? 0) / 4));
+    return () => {
+      root.style.removeProperty("--scroll-progress");
+    };
+  }, [page]);
   const activeStep = isStep(page) ? steps.find((s) => s.id === page)! : null;
 
   return (
@@ -323,6 +339,22 @@ export function App() {
           )}
           {activeStep && (
             <>
+              <nav className="dv-tabs ed-steps" aria-label="분석 단계">
+                {steps.map((step, index) => (
+                  <button
+                    key={step.id}
+                    className="dv-tab"
+                    aria-current={page === step.id ? "page" : undefined}
+                    aria-label={step.label}
+                    onClick={() => setPage(step.id)}
+                  >
+                    <span className="ed-step-num" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span aria-hidden="true">{step.label}</span>
+                  </button>
+                ))}
+              </nav>
               <section className="ed-conditions" aria-label="분석 조건">
                 <AnalysisForm
                   value={form}
@@ -405,22 +437,6 @@ export function App() {
                   결과가 아닙니다.
                 </p>
               )}
-              <nav className="dv-tabs ed-steps" aria-label="분석 단계">
-                {steps.map((step, index) => (
-                  <button
-                    key={step.id}
-                    className="dv-tab"
-                    aria-current={page === step.id ? "page" : undefined}
-                    aria-label={step.label}
-                    onClick={() => setPage(step.id)}
-                  >
-                    <span className="ed-step-num" aria-hidden="true">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span aria-hidden="true">{step.label}</span>
-                  </button>
-                ))}
-              </nav>
             </>
           )}
           {page === "forecast" && (
@@ -442,6 +458,11 @@ export function App() {
                 busy={unresolved}
                 onRemeasure={() => run && submit({ ...run.request })}
                 regenerate={api.regenerateDraft}
+                onConfirm={async () => {
+                  if (!run?.result_token) return;
+                  await api.confirm(run.id, run.result_token);
+                  analysis.refresh();
+                }}
               />
             </section>
           )}

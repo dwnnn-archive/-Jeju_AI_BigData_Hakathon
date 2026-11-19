@@ -24,7 +24,8 @@ export function DraftView({ run }: { run: AnalysisRun }) {
     );
   }
   const hours = `${pad(result.peak_hour)}:00–${pad((result.peak_hour + 1) % 24)}:00`;
-  const keys = Object.keys(resourceNames) as (keyof typeof resourceNames)[];
+  // 배분 순서(EV 먼저)대로 보여 준다.
+  const keys = ["ev", "bess", "vpp", "p2x"] as const;
   return (
     <article className="draft-doc" aria-labelledby="draft-title">
       <header className="draft-doc-head">
@@ -36,7 +37,7 @@ export function DraftView({ run }: { run: AnalysisRun }) {
           {riskLabel[result.risk]}
         </span>
       </header>
-      <h3 id="draft-title">제주 출력제한 대응 권고</h3>
+      <h3 id="draft-title">제주 출력제한 상황 요약</h3>
       <p className="draft-doc-when">
         {longDate(result.date)} <strong>{hours}</strong> KST · 피크 1시간
       </p>
@@ -91,10 +92,10 @@ export function DraftView({ run }: { run: AnalysisRun }) {
         현장 검증과 담당자 승인이 필요합니다.
       </p>
 
-      <details className="draft-doc-raw">
-        <summary>발송될 통보문 원문 보기</summary>
+      <section className="draft-doc-raw" aria-labelledby="draft-raw-title">
+        <h4 id="draft-raw-title">발송될 통보문 원문</h4>
         <pre>{draft}</pre>
-      </details>
+      </section>
     </article>
   );
 }

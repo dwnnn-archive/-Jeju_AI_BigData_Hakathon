@@ -12,19 +12,19 @@ const resources = [
   {
     key: "bess",
     name: "ESS 충전",
-    detail: "대형 ESS · BESS · 확장 후보",
+    detail: "대형 ESS · BESS",
     why: "EV로 다 담지 못할 때 보태는 첫 확장 후보입니다. 계통에 직접 연결된 대형 설비라 바로 충전할 수 있고, 제주 ESS 계량 실적으로 용량을 확인했습니다.",
   },
   {
     key: "vpp",
     name: "VPP 유연성 자원",
-    detail: "분산형 ESS · VPP · 확장 후보",
+    detail: "분산형 ESS · VPP",
     why: "흩어진 설비를 묶어 제어하므로 대형 ESS 다음으로 응답이 빠를 것으로 보지만, 흡수 가능량 자료가 없어 가정값입니다.",
   },
   {
     key: "p2x",
     name: "수전해 수소 생산",
-    detail: "수소 전환 · P2X · 확장 후보",
+    detail: "수소 전환 · P2X",
     why: "행원 실증단지(3.3 MW)는 규모가 작고 가동 조건이 있어 마지막 보조 수단입니다.",
   },
 ] as const;
@@ -36,7 +36,7 @@ const basisNote = {
     tag: "가정값",
     text: "제주 VPP 운영 규모(약 203 MW, 2025-06 보도)는 확인되나 1시간 흡수 가능량 자료는 없어 30 MWh는 가정값입니다",
   },
-  p2x: { tag: "보도 기준", text: "행원 실증단지 3.3 MW(보도), 공식 통계 아님" },
+  p2x: { tag: "보도 기준", text: "행원 실증단지 3.3 MW(보도)" },
 } as const;
 
 export function AllocationPanel({
@@ -135,20 +135,6 @@ export function AllocationPanel({
                 <div>
                   <strong>{name}</strong>
                   <span>{detail}</span>
-                  {key !== "ev" && (
-                    <span className={`basis-tag basis-tag--${key}`}>
-                      {basisNote[key].tag}
-                    </span>
-                  )}
-                  <p>
-                    {key === "ev" && ev
-                      ? fromHistory
-                        ? `허브 충전소 ${ev.stations_open.toLocaleString()}곳 운영 중 · 충전 이력(${historyRange}) 기반 이용률`
-                        : `허브 충전소 ${ev.stations_open.toLocaleString()}곳 운영 중 · 이용률 ${Math.round(ev.assumptions.idle_ratio * 100)}% 가정`
-                      : key === "ev"
-                        ? "시연 가용량 기준"
-                        : basisNote[key].text}
-                  </p>
                   <meter
                     className="ed-meter"
                     min={0}
@@ -156,6 +142,30 @@ export function AllocationPanel({
                     value={value}
                     aria-label={`${name} 제안 배분량`}
                   />
+                  <div className="alloc-chips">
+                    {key === "ev" ? (
+                      <span className="alloc-chip alloc-chip--hub">
+                        제주데이터허브
+                      </span>
+                    ) : (
+                      <>
+                        <span className="alloc-chip">확장 후보</span>
+                        <span className={`alloc-chip alloc-chip--${key}`}>
+                          {basisNote[key].tag}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="alloc-source">
+                    출처:{" "}
+                    {key === "ev" && ev
+                      ? fromHistory
+                        ? `허브 충전소 ${ev.stations_open.toLocaleString()}곳 운영 중 · 충전 이력(${historyRange}) 기반 이용률`
+                        : `허브 충전소 ${ev.stations_open.toLocaleString()}곳 운영 중 · 이용률 ${Math.round(ev.assumptions.idle_ratio * 100)}% 가정`
+                      : key === "ev"
+                        ? "시연 가용량 기준"
+                        : basisNote[key].text}
+                  </div>
                 </div>
                 <p>
                   {fmt(value)}

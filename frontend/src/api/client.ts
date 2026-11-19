@@ -101,6 +101,14 @@ export function createApi(key: string) {
         throw new ApiError("질문 답변의 형식을 확인하지 못했습니다.");
       return parsed.data;
     },
+    // 담당자가 통보문을 확인했다고 한 번 기록한다(로그인·발송 없음).
+    confirm: async (id: string, resultToken: string) =>
+      parseRun(
+        await request("/analyses/" + encodeURIComponent(id) + "/confirm", {
+          method: "POST",
+          body: JSON.stringify({ result_token: resultToken }),
+        }),
+      ),
     // AI가 통보문 문안을 새로 쓴다(저장된 분석은 바뀌지 않는다).
     regenerateDraft: async (id: string, previous?: string) => {
       const data = await request(

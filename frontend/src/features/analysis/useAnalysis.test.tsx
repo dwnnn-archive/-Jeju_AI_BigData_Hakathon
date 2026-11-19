@@ -22,6 +22,7 @@ function apiMock(): Api {
     checkLogin: vi.fn(),
     chat: vi.fn(),
     regenerateDraft: vi.fn(),
+    confirm: vi.fn(),
   };
 }
 function visibility(hidden: boolean) {

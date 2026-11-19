@@ -5,7 +5,7 @@ export const labels: Record<AnalysisRun["status"], string> = {
   running: "분석 중",
   status_unknown: "상태 확인 불가",
   interrupted: "실행 중단 확인",
-  awaiting_approval: "계산 완료 · 검토 필요",
+  awaiting_approval: "계산 완료 · 통보문 확인 대기",
   completed: "계산 완료",
   approved: "발송 확정됨",
   rejected: "발송 보류됨",
@@ -21,6 +21,8 @@ export function statusLabel(transport: Transport, run: AnalysisRun | null) {
   if (transport === "sending") return "요청 전송 중";
   if (transport === "unknown") return "상태 확인 불가";
   if (transport === "checking") return "서버 상태 확인 중";
+  if (run?.status === "awaiting_approval" && run.confirmation)
+    return "담당자 확인 완료";
   return run ? labels[run.status] : "분석 요청 전";
 }
 export function acceptSnapshot(
@@ -128,8 +130,11 @@ export function workdaySteps(run: AnalysisRun | null): WorkdayStep[] {
   const check = run?.check_no ?? 0;
   const risky =
     run?.result?.risk === "CAUTION" || run?.result?.risk === "CRITICAL";
-  const decided = run?.status === "approved" || run?.status === "rejected";
-  const awaiting = run?.status === "awaiting_approval";
+  const decided =
+    run?.status === "approved" ||
+    run?.status === "rejected" ||
+    Boolean(run?.confirmation);
+  const awaiting = run?.status === "awaiting_approval" && !run.confirmation;
   const finished = Boolean(run && run.status !== "queued");
   const at = (n: number) => (phase === "intraday" ? check >= n : false);
   const dayAheadDone = finished && (phase !== "intraday" || check >= 1);
@@ -156,13 +161,14 @@ export function workdaySteps(run: AnalysisRun | null): WorkdayStep[] {
       key: "review",
       time: "위험 판정 즉시",
       title: "담당자 통보문 확인",
-      detail: "대응 후보 제안과 통보문 초안 확인 후 발송 확정 또는 보류",
+      detail: "대응 후보 제안과 통보문 초안을 확인하고 '확인했습니다'를 기록",
     },
     {
       key: "notify",
-      time: "승인 직후",
-      title: "관계기관 통보",
-      detail: "승인된 초안으로 통보(실제 발송은 운영 검증 후)",
+      time: "확인 직후",
+      title: "기관 문자 시스템으로 발송",
+      detail:
+        "담당자가 확인한 통보문을 기관 시스템에 붙여 넣어 발송(이 서비스는 발송하지 않음)",
     },
     {
       key: "peak",

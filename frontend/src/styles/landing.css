@@ -625,3 +625,22 @@ main.main--landing {
     display: none;
   }
 }
+
+/* 모든 페이지: 헤더 아래 회색 선이 페이지를 넘길 때마다 1/4씩 초록색으로 찬다 */
+.gnb::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 3px;
+  width: calc(var(--scroll-progress, 0) * 100%);
+  transition: width 0.45s ease;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gnb::after {
+    transition: none;
+  }
+}

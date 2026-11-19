@@ -25,13 +25,19 @@ export function HistoryPanel({
   onSelect: (item: AnalysisSummary) => void;
   onRefresh: () => void;
 }) {
-  const pending = items.filter((i) => i.status === "awaiting_approval").length;
+  const waiting = items.filter(
+    (i) => i.status === "awaiting_approval" && !i.confirmation,
+  ).length;
+  const confirmed = items.filter(
+    (i) => i.status === "awaiting_approval" && i.confirmation,
+  ).length;
   return (
     <section className="ed-history" aria-labelledby="ed-history-title">
       <div className="ed-history-head">
         <h2 id="ed-history-title">
           최근 {items.length}건
-          {pending > 0 && <span> · 검토 대기 {pending}건</span>}
+          {waiting > 0 && <span> · 통보문 확인 대기 {waiting}건</span>}
+          {confirmed > 0 && <span> · 확인 완료 {confirmed}건</span>}
         </h2>
         <button
           type="button"
@@ -72,7 +78,9 @@ export function HistoryPanel({
               <span
                 className={`ed-status ed-status--${item.status === "awaiting_approval" ? "pending" : item.status === "failed" || item.status === "interrupted" ? "bad" : "plain"}`}
               >
-                {labels[item.status]}
+                {item.status === "awaiting_approval" && item.confirmation
+                  ? "담당자 확인 완료"
+                  : labels[item.status]}
               </span>
               <span className="mono ed-history-id">{item.id.slice(0, 8)}</span>
               <button
