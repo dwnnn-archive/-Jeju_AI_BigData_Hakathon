@@ -3,16 +3,39 @@ import { fmt, pad } from "../analysis/FlowChart";
 import { RunConditions } from "../analysis/RunConditions";
 
 const resources = [
-  { key: "bess", name: "ESS 충전", detail: "대형 ESS · BESS" },
-  { key: "vpp", name: "VPP 유연성 자원", detail: "분산형 ESS · VPP" },
-  { key: "p2x", name: "수전해 수소 생산", detail: "수소 전환 · P2X" },
-  { key: "ev", name: "전기차 충전 전환", detail: "스마트 충전 · EV" },
+  {
+    key: "ev",
+    name: "전기차 충전 전환",
+    detail: "스마트 충전 · EV",
+    why: "제주데이터허브의 충전소 정보와 충전 이력으로 용량을 직접 계산한 자원이고, 충전소 운영자와 전기차 이용자에게 충전 시간을 옮겨 달라고 요청하는 것이 이 서비스의 기본 대응입니다.",
+  },
+  {
+    key: "bess",
+    name: "ESS 충전",
+    detail: "대형 ESS · BESS · 확장 후보",
+    why: "EV로 다 담지 못할 때 보태는 첫 확장 후보입니다. 계통에 직접 연결된 대형 설비라 바로 충전할 수 있고, 제주 ESS 계량 실적으로 용량을 확인했습니다.",
+  },
+  {
+    key: "vpp",
+    name: "VPP 유연성 자원",
+    detail: "분산형 ESS · VPP · 확장 후보",
+    why: "흩어진 설비를 묶어 제어하므로 대형 ESS 다음으로 응답이 빠를 것으로 보지만, 흡수 가능량 자료가 없어 가정값입니다.",
+  },
+  {
+    key: "p2x",
+    name: "수전해 수소 생산",
+    detail: "수소 전환 · P2X · 확장 후보",
+    why: "행원 실증단지(3.3 MW)는 규모가 작고 가동 조건이 있어 마지막 보조 수단입니다.",
+  },
 ] as const;
 
 /** 자원별 용량 근거. VPP는 근거 자료를 찾지 못한 가정값이다. */
 const basisNote = {
   bess: { tag: "자료 기반", text: "제주 ESS 계량 자료의 실적 기준(하한)" },
-  vpp: { tag: "가정값", text: "근거 자료 없음 · 시연용 추정치입니다" },
+  vpp: {
+    tag: "가정값",
+    text: "제주 VPP 운영 규모(약 203 MW, 2025-06 보도)는 확인되나 1시간 흡수 가능량 자료는 없어 30 MWh는 가정값입니다",
+  },
   p2x: { tag: "보도 기준", text: "행원 실증단지 3.3 MW(보도), 공식 통계 아님" },
 } as const;
 
@@ -80,6 +103,24 @@ export function AllocationPanel({
             우선순위대로 가용량을 채웁니다.
           </p>
           {orderNote && <p className="caption">{orderNote}</p>}
+          <details className="alloc-why">
+            <summary>왜 이 순서로 채우나요?</summary>
+            <ol>
+              {resources.map(({ key, name, why }) => (
+                <li key={key}>
+                  <strong>{name}</strong>
+                  <span>{why}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="caption">
+              전기차 충전을 먼저 쓰는 것은 제주데이터허브 자료로 용량을 계산한
+              자원이기 때문입니다. 나머지 순서는 응답 속도와 제어의 확실성을
+              기준으로 정한 설계 규칙이며, 실제 응답 시간 자료로 검증한 것은
+              아닙니다. ESS·VPP·수소는 실제 설비 연동과 사업자 확인 뒤 확장할
+              후보입니다.
+            </p>
+          </details>
         </div>
         <ul>
           {resources.map(({ key, name, detail }, index) => {

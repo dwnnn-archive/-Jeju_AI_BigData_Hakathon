@@ -48,7 +48,7 @@ RESOURCE_NAMES = {
 }
 RESOURCE_BASIS = {
     "bess": "자료 기반(제주 ESS 계량 자료의 실적 하한)",
-    "vpp": "가정값(근거 자료 없음)",
+    "vpp": "가정값(제주 VPP 운영 규모 약 203 MW는 2025-06 보도로 확인되나 1시간 흡수 가능량 자료는 없음)",
     "p2x": "보도 기준(행원 실증단지, 공식 통계 아님)",
 }
 BLOCK_TEXT = {
@@ -135,7 +135,10 @@ def tool_allocation(run: dict, _args: dict) -> dict:
         }
     ev = plan.get("ev_basis")
     return {
-        "priority": "대형 ESS → 분산형 ESS → 수소 → 전기차 충전 순으로 가용량을 채웁니다.",
+        "priority": (
+            "전기차 충전(제주데이터허브 충전소·충전 이력 기반)을 먼저 채우고, 남는 양은 대형 ESS → 분산형 ESS → 수소 "
+            "순으로 보탭니다. ESS·VPP·수소는 전기차로 다 담지 못할 때 쓰는 확장 후보입니다."
+        ),
         "resources": [
             {
                 "name": RESOURCE_NAMES[key],
@@ -144,7 +147,7 @@ def tool_allocation(run: dict, _args: dict) -> dict:
                 "basis": RESOURCE_BASIS.get(key)
                 or ("허브 충전소 정보 기반" if ev else "시연 고정값(충전소 파일 없음)"),
             }
-            for key in ("bess", "vpp", "p2x", "ev")
+            for key in ("ev", "bess", "vpp", "p2x")
         ],
         "absorbed_mwh": _f(plan["absorbed_mwh"]),
         "residual_mwh": _f(plan["residual_mwh"]),

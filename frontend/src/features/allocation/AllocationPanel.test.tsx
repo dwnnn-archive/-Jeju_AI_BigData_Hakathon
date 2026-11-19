@@ -100,7 +100,7 @@ function allocated(values: Record<string, number>, residual = 0) {
 it("explains why later resources are zero when an earlier one absorbs everything", () => {
   render(
     <AllocationPanel
-      run={allocated({ bess: 37.3, vpp: 0, p2x: 0, ev: 0 })}
+      run={allocated({ ev: 37.3, bess: 0, vpp: 0, p2x: 0 })}
       onPrev={() => {}}
       onNext={() => {}}
     />,
@@ -108,17 +108,44 @@ it("explains why later resources are zero when an earlier one absorbs everything
   expect(
     screen.getByText(/앞 순위 자원이 다 차야 다음 순위로 넘어갑니다/),
   ).toBeInTheDocument();
-  expect(screen.getByText(/ESS 충전까지만으로 흡수되어/)).toBeInTheDocument();
-  expect(screen.getByText(/37\.7 MWh를 넘을 때부터/)).toBeInTheDocument();
+  expect(
+    screen.getByText(/전기차 충전 전환까지만으로 흡수되어/),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/111\.1 MWh를 넘을 때부터/)).toBeInTheDocument();
 });
 
 it("says nothing about skipped resources when every resource is used", () => {
   render(
     <AllocationPanel
-      run={allocated({ bess: 37.7, vpp: 30, p2x: 3.3, ev: 50 })}
+      run={allocated({ ev: 111.1, bess: 37.7, vpp: 30, p2x: 3.3 })}
       onPrev={() => {}}
       onNext={() => {}}
     />,
   );
   expect(screen.queryByText(/앞 순위 자원이 다 차야/)).not.toBeInTheDocument();
+});
+
+it("explains why resources are filled in this order and what the VPP assumption rests on", () => {
+  render(
+    <AllocationPanel
+      run={allocated({ ev: 111.1, bess: 37.7, vpp: 29, p2x: 0 })}
+      onPrev={() => {}}
+      onNext={() => {}}
+    />,
+  );
+  expect(screen.getByText("왜 이 순서로 채우나요?")).toBeInTheDocument();
+  expect(
+    screen.getByText(/나머지 순서는 응답 속도와 제어의 확실성을/),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/약 203 MW, 2025-06 보도/)).toBeInTheDocument();
+});
+
+it("puts the EV card first and labels the other three as expansion candidates", () => {
+  render(<AllocationPanel run={base} onPrev={() => {}} onNext={() => {}} />);
+  const names = screen
+    .getAllByRole("listitem")
+    .map((li) => li.textContent ?? "")
+    .filter((t) => /전기차 충전 전환|ESS 충전|VPP 유연성|수전해 수소/.test(t));
+  expect(names[0]).toContain("전기차 충전 전환");
+  expect(screen.getAllByText(/확장 후보/).length).toBeGreaterThanOrEqual(3);
 });

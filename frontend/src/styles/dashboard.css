@@ -566,3 +566,24 @@
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
+
+.alloc-why {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.alloc-why summary {
+  cursor: pointer;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+.alloc-why ol {
+  margin: 10px 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.alloc-why li span {
+  display: block;
+  margin-top: 2px;
+}

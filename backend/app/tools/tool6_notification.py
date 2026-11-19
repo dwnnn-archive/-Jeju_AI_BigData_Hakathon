@@ -24,7 +24,7 @@ def footer_lines(allocation: dict) -> str:
         + "피크 1시간 대응 후보 제안(참고). "
         + (
             "EV 용량은 제주데이터허브 충전소 정보 기반, BESS는 ESS 계량 실적, P2X는 보도 수치이며 "
-            "VPP는 근거 없는 가정값입니다. "
+            "VPP는 흡수 가능량 자료가 없는 가정값입니다. "
             if allocation.get("ev_basis")
             else "자원 가용량은 시연 추정치이며 "
         )
@@ -38,7 +38,7 @@ def draft_notification(result: dict, allocation: dict) -> str:
         f"위험등급: {result['risk']}, 발전량/수요 비율 최대 {result['peak_ratio']:.0%}\n"
         f"피크 잉여전력(수요의 {result['thresholds']['warning_ratio']:.0%} 초과분): "
         f"{result['peak_surplus_mwh']:.2f} MWh\n"
-        f"BESS/VPP/P2X/EV 배분(MWh): {_allocated_line(allocation['allocated_mwh'])}\n"
+        f"EV/BESS/VPP/P2X 배분(MWh): {_allocated_line(allocation['allocated_mwh'])}\n"
         f"흡수율: {allocation['absorption_pct']:.2f}%, 잔여: {allocation['residual_mwh']:.2f} MWh\n"
         f"수소 환산: {allocation['hydrogen_kg']:.2f} kg (13 kg/MWh 가정)\n"
         + footer_lines(allocation)

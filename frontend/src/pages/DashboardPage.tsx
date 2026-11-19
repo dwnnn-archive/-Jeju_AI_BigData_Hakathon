@@ -291,7 +291,7 @@ function AfterView({
         <summary>배분 조건과 데이터 출처 확인</summary>
         <p>
           {allocation
-            ? `가용량을 ESS ${fmt(allocation.capacities_mwh.bess)}, VPP ${fmt(allocation.capacities_mwh.vpp)}, 수전해 ${fmt(allocation.capacities_mwh.p2x)}, 전기차 ${fmt(allocation.capacities_mwh.ev)} MWh로 가정했습니다(${allocation.availability_verified ? "현장 확인됨" : "시연 추정치"}). 수소 환산 ${fmt(allocation.hydrogen_kg)} kg. `
+            ? `가용량을 전기차 ${fmt(allocation.capacities_mwh.ev)}, ESS ${fmt(allocation.capacities_mwh.bess)}, VPP ${fmt(allocation.capacities_mwh.vpp)}, 수전해 ${fmt(allocation.capacities_mwh.p2x)} MWh로 가정했습니다(전기차 먼저, 나머지는 확장 후보)(${allocation.availability_verified ? "현장 확인됨" : "시연 추정치"}). 수소 환산 ${fmt(allocation.hydrogen_kg)} kg. `
             : ""}
           데이터 출처:{" "}
           {Object.entries(run.sources)

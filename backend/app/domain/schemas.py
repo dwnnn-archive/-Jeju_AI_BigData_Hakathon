@@ -39,10 +39,12 @@ class WeatherHour(StrictModel):
 
 
 class Capacities(StrictModel):
+    # 배분은 이 필드 순서대로 앞 자원부터 채운다. 제주데이터허브 충전소·이력으로 용량을 계산하는
+    # EV가 1순위이고, 나머지 세 자원은 EV로 다 담지 못할 때 보태는 확장 후보다.
+    ev: NonNegative = 40
     bess: NonNegative = 37.7  # 제주 ESS 계량 실적의 시간당 최대 충전량(2024-01~2025-12)
     vpp: NonNegative = 30
     p2x: NonNegative = 3.3  # 행원 그린수소 실증단지 수전해 3.3 MW(2026-09 보도), 1시간 상한
-    ev: NonNegative = 40
 
 
 class Plant(StrictModel):

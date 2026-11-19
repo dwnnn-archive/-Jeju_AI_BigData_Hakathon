@@ -87,7 +87,9 @@ def test_peak_allocation_conserves_energy_and_reports_residual():
 
 def test_priority_and_zero_allocation():
     assigned = allocate(80)["allocated_mwh"]
-    assert assigned == pytest.approx({"bess": 37.7, "vpp": 30, "p2x": 3.3, "ev": 9.0})
+    # EV(허브 데이터 기반)가 1순위라 먼저 다 채우고, 남는 양을 BESS → VPP → P2X 순으로 보탠다.
+    assert list(assigned) == ["ev", "bess", "vpp", "p2x"]
+    assert assigned == pytest.approx({"ev": 40, "bess": 37.7, "vpp": 2.3, "p2x": 0})
     assert allocate(0)["absorption_pct"] == 0
 
 
