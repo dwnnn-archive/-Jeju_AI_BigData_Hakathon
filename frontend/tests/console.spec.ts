@@ -5,6 +5,7 @@ import { runFixture } from "../src/test/fixtures";
 async function analyze(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("시연 데이터").check({ force: true }); // 기본은 외부 데이터
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "계산 완료 · 검토 필요",
@@ -16,6 +17,7 @@ test("real API: empty → result → draft on demand → AI rewrite, with keyboa
 }, testInfo) => {
   await page.goto("/");
   await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("시연 데이터").check({ force: true }); // 기본은 외부 데이터
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
     "분석 요청 전",
   );
@@ -86,6 +88,7 @@ test("receipt delay and queue are never shown as running; only worker evidence s
   );
   await page.goto("/");
   await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("시연 데이터").check({ force: true }); // 기본은 외부 데이터
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toHaveText(
     "요청 전송 중",
@@ -198,6 +201,7 @@ test("intraday check button: normal day-ahead → 1st normal → 2nd critical �
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("시연 데이터").check({ force: true }); // 기본은 외부 데이터
   await page.getByLabel("당일 위험 전환").check({ force: true });
   await page.getByLabel("행원").check({ force: true }); // 다른 테스트와 기록이 섞이지 않게 한다
   const status = page.getByRole("status", { name: "분석 상태" });
@@ -237,6 +241,7 @@ test("question panel: asks about the result and labels the answer source", async
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "분석", exact: true }).click();
+  await page.getByLabel("시연 데이터").check({ force: true }); // 기본은 외부 데이터
   await page.getByLabel("한림").check({ force: true }); // 다른 테스트와 기록이 섞이지 않게 한다
   await page.getByRole("button", { name: "분석 요청", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(

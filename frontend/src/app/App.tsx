@@ -110,7 +110,8 @@ export function App() {
     analysis.active?.request || {
       date: tomorrow(),
       region: "jeju",
-      mode: "demo",
+      // 기본은 외부 데이터. 시연 데이터는 화면에서 직접 고른다.
+      mode: "live",
       scenario: "critical",
     },
   );
