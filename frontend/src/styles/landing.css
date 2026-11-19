@@ -63,7 +63,7 @@
 .gnb-brand small {
   display: block;
   font-size: 10px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   opacity: 0.7;
 }
 .gnb-nav {

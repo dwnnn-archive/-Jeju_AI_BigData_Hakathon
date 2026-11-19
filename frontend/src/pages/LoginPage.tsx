@@ -44,7 +44,7 @@ export function LoginPage({
           <span className="brand-mark">
             <Activity size={24} aria-hidden="true" />
           </span>
-          <span>제주 에너지</span>
+          <span>제주 출력제한 길잡이</span>
         </div>
         <h1 id="login-title" className="sr-only">
           담당자 로그인

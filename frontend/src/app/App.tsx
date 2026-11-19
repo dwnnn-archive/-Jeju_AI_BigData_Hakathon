@@ -200,14 +200,14 @@ export function App() {
         <button
           className="gnb-brand"
           onClick={() => setPage("landing")}
-          aria-label="제주 에너지 소개 화면으로"
+          aria-label="제주 출력제한 길잡이 소개 화면으로"
         >
           <span className="brand-mark">
             <Activity size={22} aria-hidden="true" />
           </span>
           <span>
-            <strong>제주 에너지</strong>
-            <small>JEJU ENERGY</small>
+            <strong>제주 출력제한 길잡이</strong>
+            <small>출력제한 예측, 대응 보조 AI agent</small>
           </span>
         </button>
         <nav className="gnb-nav" aria-label="주 메뉴">
@@ -484,7 +484,7 @@ export function App() {
             )}
           {page !== "landing" && (
             <footer className="page-footer">
-              <span>제주 에너지 · 의사결정 지원</span>
+              <span>제주 출력제한 길잡이 · 의사결정 지원</span>
               <span>
                 예측값은 검토용 참고 정보이며 실제 조치 승인을 대신하지
                 않습니다.
