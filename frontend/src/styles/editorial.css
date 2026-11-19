@@ -923,13 +923,10 @@ section.ed-alloc li:has(.ed-rank):last-child {
   color: var(--text-sub) !important;
 }
 .alloc-chip--hub,
+.alloc-chip--vpp,
 .alloc-chip--bess {
   background: #e3f6ea;
   color: var(--success-text) !important;
-}
-.alloc-chip--vpp {
-  background: #fff4cc;
-  color: var(--warning-text) !important;
 }
 .alloc-chip--p2x {
   background: #e8edfb;

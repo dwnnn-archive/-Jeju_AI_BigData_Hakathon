@@ -255,4 +255,4 @@ def test_notification_names_top_stations_only_when_hub_data_present():
         "가, 나, 다" in text
         and "라" not in text.split("충전소(설치 규모 기준):")[1].splitlines()[0]
     )
-    assert "VPP는 흡수 가능량 자료가 없는 가정값" in text and "EV 용량은 제주데이터허브" in text
+    assert "VPP는 제주 플러스DR 실적(KPX) 기반 하한" in text and "EV 용량은 제주데이터허브" in text

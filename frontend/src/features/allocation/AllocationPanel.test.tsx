@@ -80,8 +80,7 @@ it("labels history-based capacity and hides the table without hub data", () => {
   rerender(<AllocationPanel run={base} />);
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   expect(screen.getAllByText(/출처: 시연 가용량 기준/)).toHaveLength(1);
-  expect(screen.getByText("자료 기반")).toBeInTheDocument();
-  expect(screen.getByText("가정값")).toBeInTheDocument();
+  expect(screen.getAllByText("자료 기반")).toHaveLength(2);
   expect(screen.getByText("보도 기준")).toBeInTheDocument();
 });
 
@@ -137,7 +136,7 @@ it("explains why resources are filled in this order and what the VPP assumption 
   expect(
     screen.getByText(/나머지 순서는 응답 속도와 제어의 확실성을/),
   ).toBeInTheDocument();
-  expect(screen.getByText(/약 203 MW, 2025-06 보도/)).toBeInTheDocument();
+  expect(screen.getByText(/KPX 제주 플러스DR 증대 실적/)).toBeInTheDocument();
 });
 
 it("puts the EV card first and labels the other three as expansion candidates", () => {

@@ -13,7 +13,7 @@ def _mwh(value: float) -> str:
 
 
 def _allocated_line(allocated: dict) -> str:
-    """배분량을 'BESS 37.7 / VPP 30 / P2X 3.3 / EV 109' 모양으로 쓴다(긴 소수점 없이)."""
+    """배분량을 'BESS 37.7 / VPP 3.2 / P2X 3.3 / EV 109' 모양으로 쓴다(긴 소수점 없이)."""
     return " / ".join(f"{name.upper()} {_mwh(float(value))}" for name, value in allocated.items())
 
 
@@ -24,7 +24,7 @@ def footer_lines(allocation: dict) -> str:
         + "피크 1시간 대응 후보 제안(참고). "
         + (
             "EV 용량은 제주데이터허브 충전소 정보 기반, BESS는 ESS 계량 실적, P2X는 보도 수치이며 "
-            "VPP는 흡수 가능량 자료가 없는 가정값입니다. "
+            "VPP는 제주 플러스DR 실적(KPX) 기반 하한입니다. "
             if allocation.get("ev_basis")
             else "자원 가용량은 시연 추정치이며 "
         )

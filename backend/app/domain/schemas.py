@@ -43,7 +43,8 @@ class Capacities(StrictModel):
     # EV가 1순위이고, 나머지 세 자원은 EV로 다 담지 못할 때 보태는 확장 후보다.
     ev: NonNegative = 40
     bess: NonNegative = 37.7  # 제주 ESS 계량 실적의 시간당 최대 충전량(2024-01~2025-12)
-    vpp: NonNegative = 30
+    # 제주 플러스DR 실적(KPX 수요자원거래시장 보고서): 실시간 시장 월별 시간당 평균 증대량의 최댓값(2023-04, 73.7 MWh/23시간)
+    vpp: NonNegative = 3.2
     p2x: NonNegative = 3.3  # 행원 그린수소 실증단지 수전해 3.3 MW(2026-09 보도), 1시간 상한
 
 

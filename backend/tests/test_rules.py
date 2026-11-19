@@ -77,11 +77,11 @@ def test_deficit_is_not_negative_surplus():
 
 def test_peak_allocation_conserves_energy_and_reports_residual():
     result = allocate(230)
-    assert result["allocated_mwh"] == pytest.approx({"bess": 37.7, "vpp": 30, "p2x": 3.3, "ev": 40})
-    assert result["absorbed_mwh"] == pytest.approx(111.0)
-    assert result["residual_mwh"] == pytest.approx(119.0)
+    assert result["allocated_mwh"] == pytest.approx({"bess": 37.7, "vpp": 3.2, "p2x": 3.3, "ev": 40})
+    assert result["absorbed_mwh"] == pytest.approx(84.2)
+    assert result["residual_mwh"] == pytest.approx(145.8)
     assert result["absorbed_mwh"] + result["residual_mwh"] == pytest.approx(230)
-    assert result["absorption_pct"] == pytest.approx(111.0 / 230 * 100)
+    assert result["absorption_pct"] == pytest.approx(84.2 / 230 * 100)
     assert result["hydrogen_kg"] == pytest.approx(42.9)
 
 
