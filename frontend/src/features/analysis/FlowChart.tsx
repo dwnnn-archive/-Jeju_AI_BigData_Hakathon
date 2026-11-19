@@ -123,8 +123,35 @@ export function FlowChart({
   // 위치는 SVG 좌표(0..W, 0..H)를 백분율로 바꿔 HTML 위에 겹친다(원이 찌그러지지 않게).
   const pctX = (h: number) => `${(x(h) / W) * 100}%`;
   const pctY = (v: number) => `${(y(v) / H) * 100}%`;
+  // 눈금: 세 줄의 가로선이 몇 MWh인지 왼쪽에 적는다.
+  const ticks = [top, (top + bottom) / 2, bottom].map((gy) => ({
+    gy,
+    value: lo + ((bottom - gy) / (bottom - top)) * (hi - lo),
+  }));
   return (
     <figure className="flow-chart">
+      <ul className="flow-legend" aria-label="그래프 범례">
+        <li>
+          <span className="flow-key flow-key--generation" aria-hidden="true" />
+          발전량 (예측)
+        </li>
+        <li>
+          <span className="flow-key flow-key--demand" aria-hidden="true" />
+          수요 (예측)
+        </li>
+        {warningRatio != null && (
+          <li>
+            <span className="flow-key flow-key--boundary" aria-hidden="true" />
+            대응 기준 · 수요의 {Math.round(warningRatio * 100)}%
+          </li>
+        )}
+        {warningRatio != null && (
+          <li>
+            <span className="flow-key flow-key--surplus" aria-hidden="true" />
+            기준 초과분 (잉여)
+          </li>
+        )}
+      </ul>
       <div
         className="flow-plot"
         tabIndex={0}
@@ -179,6 +206,16 @@ export function FlowChart({
           )}
           <path d={gen} className="flow-generation" />
         </svg>
+        {ticks.map(({ gy, value }) => (
+          <span
+            key={gy}
+            className="flow-ytick"
+            style={{ top: `${(gy / H) * 100}%` }}
+            aria-hidden="true"
+          >
+            {Math.round(value).toLocaleString()} MWh
+          </span>
+        ))}
         {activeRow && (
           <div className="flow-hover" aria-live="polite">
             <span
@@ -245,8 +282,9 @@ export function FlowChart({
       </div>
       {warningRatio != null && (
         <figcaption className="dv-caption">
-          갈색 점선: 수요의 {Math.round(warningRatio * 100)}% 대응 기준 · 음영:
-          기준 초과분
+          발전량(초록 선)이 대응 기준(갈색 점선: 수요의{" "}
+          {Math.round(warningRatio * 100)}%)을 넘는 구간이 초록 음영으로
+          표시됩니다. 그래프에 마우스를 올리면 시간대별 수치가 보입니다.
         </figcaption>
       )}
       {span && (
