@@ -49,6 +49,21 @@ export function AllocationPanel({
   const peak = run.result
     ? `${pad(run.result.peak_hour)}:00–${pad((run.result.peak_hour + 1) % 24)}:00`
     : "피크 1시간";
+  // 앞 순위 자원이 다 차야 다음 순위로 넘어간다. 왜 뒤 순위가 0인지 화면에서 풀어 쓴다.
+  const idleFrom = resources.findIndex(
+    ({ key }) => allocation.allocated_mwh[key] <= 0,
+  );
+  const nextIdle = idleFrom > 0 ? resources[idleFrom] : null;
+  const neededForNext = nextIdle
+    ? resources
+        .slice(0, idleFrom)
+        .reduce((sum, { key }) => sum + allocation.capacities_mwh[key], 0)
+    : 0;
+  const orderNote = nextIdle
+    ? `앞 순위 자원이 다 차야 다음 순위로 넘어갑니다. 이번 잉여는 ${resources[idleFrom - 1].name}까지만으로 흡수되어 ${nextIdle.name} 이후는 0입니다. ${nextIdle.name}은 잉여가 ${fmt(neededForNext)} MWh를 넘을 때부터 쓰입니다.`
+    : allocation.residual_mwh > 0
+      ? `모든 자원을 순서대로 다 채웠고, 흡수하지 못한 잔여가 ${fmt(allocation.residual_mwh)} MWh 남습니다.`
+      : "";
   return (
     <>
       <RunConditions run={run} />
@@ -64,6 +79,7 @@ export function AllocationPanel({
             <br />
             우선순위대로 가용량을 채웁니다.
           </p>
+          {orderNote && <p className="caption">{orderNote}</p>}
         </div>
         <ul>
           {resources.map(({ key, name, detail }, index) => {

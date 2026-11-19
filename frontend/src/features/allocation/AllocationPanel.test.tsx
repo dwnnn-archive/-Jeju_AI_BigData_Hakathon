@@ -84,3 +84,41 @@ it("labels history-based capacity and hides the table without hub data", () => {
   expect(screen.getByText("가정값")).toBeInTheDocument();
   expect(screen.getByText("보도 기준")).toBeInTheDocument();
 });
+
+function allocated(values: Record<string, number>, residual = 0) {
+  return runFixture({
+    allocation: {
+      ...base.allocation!,
+      allocated_mwh: values,
+      capacities_mwh: { bess: 37.7, vpp: 30, p2x: 3.3, ev: 111.1 },
+      residual_mwh: residual,
+      absorbed_mwh: Object.values(values).reduce((a, b) => a + b, 0),
+    } as never,
+  });
+}
+
+it("explains why later resources are zero when an earlier one absorbs everything", () => {
+  render(
+    <AllocationPanel
+      run={allocated({ bess: 37.3, vpp: 0, p2x: 0, ev: 0 })}
+      onPrev={() => {}}
+      onNext={() => {}}
+    />,
+  );
+  expect(
+    screen.getByText(/앞 순위 자원이 다 차야 다음 순위로 넘어갑니다/),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/ESS 충전까지만으로 흡수되어/)).toBeInTheDocument();
+  expect(screen.getByText(/37\.7 MWh를 넘을 때부터/)).toBeInTheDocument();
+});
+
+it("says nothing about skipped resources when every resource is used", () => {
+  render(
+    <AllocationPanel
+      run={allocated({ bess: 37.7, vpp: 30, p2x: 3.3, ev: 50 })}
+      onPrev={() => {}}
+      onNext={() => {}}
+    />,
+  );
+  expect(screen.queryByText(/앞 순위 자원이 다 차야/)).not.toBeInTheDocument();
+});
