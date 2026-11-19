@@ -33,7 +33,8 @@ SYSTEM_PROMPT = (
     "(6) 제목·목록·표 없이 2~4문장 평서체로 쓴다. 마크다운 기호(**, #, -)와 영문 필드명은 쓰지 않고 한국어로 풀어 쓴다. "
     "(7) 수소 환산량은 가정값임을 함께 밝힌다. (8) 잉여전력은 도구 결과의 surplus_definition 설명대로 풀이한다. "
     "발전량이 수요보다 적어도 수요의 일정 비율을 넘으면 잉여로 계산하므로 이를 모순이라고 말하지 않는다. "
-    "(9) 자원 배분은 도청이 정하는 것이 아니라 참고용 대응 후보 제안이라고 설명한다."
+    "(9) 자원 배분은 도청이 정하는 것이 아니라 참고용 대응 후보 제안이라고 설명한다. "
+    "(10) '검증'을 한 단어로 뭉뚱그리지 않는다. 운영 환경 검증은 아직이지만 과거 자료로는 검증했다는 offline_backtest가 있으면 둘을 구분해 함께 말한다."
 )
 
 RISK_KO = {"NORMAL": "정상", "CAUTION": "경계", "CRITICAL": "위험"}  # 화면의 용어와 맞춘다
@@ -184,19 +185,30 @@ def tool_ev_stations(run: dict, _args: dict) -> dict:
     }
 
 
+# 과거 자료 검증 요약(기획서 5.1절). 날씨는 실측을 예보 자리에 넣은 점검이다.
+BACKTEST_NOTE = (
+    "발전량·수요 모델은 과거 494일(2023-01-01~2024-05-30)을 실제 출력제한일과 대조해 검증했다. "
+    "주의 이상 판정 시 출력제한일 포착 80.8%, 판정한 날 중 실제 제한일 76.7%. "
+    "단, 날씨는 실측값을 예보 자리에 넣은 점검이라 실제 예보 오차는 포함하지 않는다."
+)
+
+
 def tool_data_sources(run: dict, _args: dict) -> dict:
     sources = run.get("sources") or {}
     names = {"weather": "기상", "generation": "발전량", "demand": "수요"}
     return {
         "mode": "시연 데이터" if run.get("simulation") else "외부 데이터(운영 검증 전)",
         "operationally_validated": bool(run.get("operationally_validated")),
+        "operational_validation": "운영 환경(현장) 검증은 아직 하지 않음",
+        **({"offline_backtest": BACKTEST_NOTE} if any(
+            v.get("model") and not v.get("simulated") for v in sources.values()
+        ) else {}),
         "sources": [
             {
                 "item": names.get(key, key),
                 "source": str(value.get("source", "미확인")),
                 "simulated": bool(value.get("simulated")),
                 "model": value.get("model"),
-                "validated": value.get("validated"),
             }
             for key, value in sources.items()
         ],

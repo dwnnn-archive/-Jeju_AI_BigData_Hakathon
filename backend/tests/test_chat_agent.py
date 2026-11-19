@@ -249,3 +249,16 @@ def test_regenerate_draft_without_key_falls_back_to_template(app_client):
     out = app_client.post(f"/api/v1/analyses/{run['id']}/draft", json={}).json()
     assert out["mode"] == "template" and out["mode_reason"] == "no_key"
     assert out["draft"].startswith("[제주 출력제한 대응 권고]")
+
+
+def test_data_sources_separates_past_backtest_from_missing_operational_validation():
+    live = {
+        "simulation": False,
+        "sources": {"generation": {"source": "prediction", "model": "xgboost", "simulated": False}},
+    }
+    out = chat_agent.tool_data_sources(live, {})
+    assert "offline_backtest" in out and "80.8%" in out["offline_backtest"]
+    assert "아직 하지 않음" in out["operational_validation"]
+    assert all("validated" not in s for s in out["sources"])
+    demo = {"simulation": True, "sources": {"generation": {"source": "demo_scenario", "simulated": True}}}
+    assert "offline_backtest" not in chat_agent.tool_data_sources(demo, {})
