@@ -153,8 +153,9 @@ function AfterView({
   const allocation = run.allocation;
   const span = surplusSpan(result.hourly);
   const peak = `${pad(result.peak_hour)}:00–${pad((result.peak_hour + 1) % 24)}:00`;
+  // 배분 순서(EV 먼저)대로 보여 준다.
   const rows = allocation
-    ? (Object.keys(resourceNames) as (keyof typeof resourceNames)[]).filter(
+    ? (["ev", "bess", "vpp", "p2x"] as const).filter(
         (key) => allocation.allocated_mwh[key] > 0,
       )
     : [];
@@ -204,11 +205,6 @@ function AfterView({
           </p>
         )}
         <div className="dv-actions">
-          {allocation && (
-            <button type="button" className="dv-pill" onClick={onReview}>
-              배분안 검토
-            </button>
-          )}
           <button type="button" className="dv-link" onClick={onForecast}>
             시간별 예측 보기 ›
           </button>
@@ -303,6 +299,17 @@ function AfterView({
           . 설비 제어는 연결되어 있지 않습니다.
         </p>
       </details>
+
+      {allocation && (
+        <nav className="ed-stepnav" aria-label="단계 이동">
+          <button type="button" className="ed-stepnav-next" onClick={onReview}>
+            다음 단계
+            <strong>
+              배분안 검토 <span aria-hidden="true">›</span>
+            </strong>
+          </button>
+        </nav>
+      )}
     </>
   );
 }

@@ -301,7 +301,7 @@ export function App() {
               onSubmit={() => submit({ ...form, region: "jeju" })}
               submitDisabled={unresolved || transport === "sending"}
               formError={formError}
-              onGoReview={() => setPage("approval")}
+              onGoReview={() => setPage("allocation")}
               onOpenForecast={() => setPage("forecast")}
             />
           ) : (
