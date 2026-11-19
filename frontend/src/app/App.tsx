@@ -111,7 +111,8 @@ export function App() {
       date: tomorrow(),
       region: "jeju",
       // 기본은 외부 데이터. 시연 데이터는 화면에서 직접 고른다.
-      mode: "live",
+      // 키가 없는 공유용 서버는 VITE_DEFAULT_MODE=demo 로 시연 데이터를 기본으로 켠다.
+      mode: import.meta.env.VITE_DEFAULT_MODE === "demo" ? "demo" : "live",
       scenario: "critical",
     },
   );
