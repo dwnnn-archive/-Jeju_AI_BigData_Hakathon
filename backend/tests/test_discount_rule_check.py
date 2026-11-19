@@ -3,17 +3,18 @@ from datetime import date
 from scripts.discount_rule_check import in_window, is_discount_day, summarize
 
 
-def test_window_uses_2026_season_dates():
-    assert in_window(date(2026, 4, 18)) and in_window(date(2026, 5, 31))
-    assert not in_window(date(2026, 4, 17)) and not in_window(date(2026, 6, 1))
-    assert in_window(date(2026, 9, 5)) and in_window(date(2026, 10, 31))
-    assert not in_window(date(2026, 9, 4)) and not in_window(date(2026, 11, 1))
+def test_window_uses_spring_and_autumn_months():
+    for month in (3, 4, 5, 9, 10):
+        assert in_window(date(2026, month, 1)) and in_window(date(2026, month, 28))
+    for month in (1, 2, 6, 7, 8, 11, 12):
+        assert not in_window(date(2026, month, 15))
 
 
 def test_discount_day_needs_weekend_or_holiday_inside_the_window():
-    assert is_discount_day(date(2026, 4, 18))  # Saturday
+    assert is_discount_day(date(2026, 4, 18))  # Saturday in spring
+    assert is_discount_day(date(2026, 3, 7))  # Saturday, spring window starts in March
     assert not is_discount_day(date(2026, 4, 20))  # Monday
-    assert not is_discount_day(date(2026, 3, 7))  # Saturday outside the window
+    assert not is_discount_day(date(2026, 7, 4))  # Saturday outside the seasons
 
 
 def day(iso, actual, hours=(), risk="NORMAL"):
@@ -26,7 +27,7 @@ def test_summarize_counts_days_hours_and_agent_hits():
         day("2026-04-19", True, [9], "NORMAL"),  # Sunday, no overlap
         day("2026-04-20", True, [12, 13], "CRITICAL"),  # Monday: weekday, not covered
         day("2026-04-25", False),  # Saturday, no curtailment
-        day("2026-03-07", True, [12], "CAUTION"),  # Saturday outside the window
+        day("2026-07-04", True, [12], "CAUTION"),  # Saturday outside the seasons
     ]
     s = summarize(days)
     assert s["curtailed_days"] == 4

@@ -4,7 +4,8 @@
     python -m scripts.discount_rule_check
     python -m scripts.discount_rule_check --days runtime/e2e/days.json
 
-- 할인 기간은 2026년 시행 기간(봄 4/18~5/31, 가을 9/5~10/31)을 **같은 월일에 그대로** 과거 날짜에 대 본 것이다.
+- 할인 계절은 정부 보도참고자료(2026-03-13)의 봄 3~5월·가을 9~10월 전체를 **같은 달에 그대로** 과거 날짜에 대 본 것이다.
+  (2026년의 첫 적용 주말 4/18, 9/5는 시행일 4/16 직후의 토요일이라 기간 계산에 쓰지 않는다.)
   2023~2024년에 실제로 할인이 있었던 것이 아니라 "같은 규칙이 있었다면"의 계산이다.
 - 할인 적용일 = 할인 기간 안의 주말·공휴일, 할인 시간 = 11~14시(시작 시각 11, 12, 13).
 - 규칙은 충전을 유도하는 정책이고 위험일을 예측하는 도구가 아니다. 이 계산은 "달력 기준이 실제
@@ -19,12 +20,12 @@ from pathlib import Path
 from app.domain.kr_holidays import is_day_off
 
 DISCOUNT_HOURS = frozenset({11, 12, 13})
+SEASON_MONTHS = frozenset({3, 4, 5, 9, 10})  # 봄·가을(정부 보도참고자료 2026-03-13)
 RISK_FLAGS = ("CAUTION", "CRITICAL")
 
 
 def in_window(d: date) -> bool:
-    md = (d.month, d.day)
-    return (4, 18) <= md <= (5, 31) or (9, 5) <= md <= (10, 31)
+    return d.month in SEASON_MONTHS
 
 
 def is_discount_day(d: date) -> bool:

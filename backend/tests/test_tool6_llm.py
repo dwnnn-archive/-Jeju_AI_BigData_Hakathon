@@ -46,7 +46,8 @@ def run(client=None, key="k"):
 def test_uses_llm_body_and_code_footer():
     text, source = run(FakeClient())
     assert source == "llm" and GOOD in text
-    assert text.startswith("[제주 출력제한 대응 권고]") and "담당자 승인이 필요합니다" in text
+    assert text.startswith("[제주 출력제한 대응 권고]") and "담당자 승인이 필요하며" in text
+    assert "기상·수요 변동에 따라 변경될 수 있습니다" in text
 
 
 def test_no_key_falls_back_to_template_without_call():

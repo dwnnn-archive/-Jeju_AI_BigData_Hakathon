@@ -28,7 +28,7 @@ def footer_lines(allocation: dict) -> str:
             if allocation.get("ev_basis")
             else "자원 가용량은 시연 추정치이며 "
         )
-        + "현장 검증과 담당자 승인이 필요합니다."
+        + "현장 검증과 담당자 승인이 필요하며, 기상·수요 변동에 따라 변경될 수 있습니다."
     )
 
 
