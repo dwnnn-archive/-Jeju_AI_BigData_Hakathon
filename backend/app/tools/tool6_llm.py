@@ -16,7 +16,9 @@ SYSTEM_PROMPT = (
     "통보문 본문을 한국어로 2~3문장, 문자 알림에 맞게 짧고 간결한 평서체로 쓴다.\n"
     "규칙: (1) JSON에 없는 숫자나 사실을 만들지 않는다. (2) 숫자는 JSON의 문자열을 그대로 옮긴다. "
     "(3) 위험등급은 JSON의 영문 값을 그대로 쓴다. (4) 설비 제어 명령이나 확정 표현을 쓰지 않고 "
-    "제안 형태로 쓴다. (5) 제목·목록·머리말 없이 본문 문장만 쓴다. (6) 수소 환산량은 가정값이므로 언급할 때 hydrogen_assumption을 함께 쓴다."
+    "제안 형태로 쓴다. (5) 제목·목록·머리말 없이 본문 문장만 쓴다. (6) 수소 환산량은 가정값이므로 언급할 때 hydrogen_assumption을 함께 쓴다. "
+    "(7) 수신 대상은 문자 발송에 동의한 시민과 관내 충전소 등 운영자·재생에너지 사업자이므로, 전문 용어를 줄이고 "
+    "두 대상 모두 이해할 수 있게 쓴다. (8) 입력에 previous_body가 있으면 그 문안과 다른 표현·문장 구성으로 새로 쓰되 사실은 같게 한다."
 )
 
 MAX_ATTEMPTS = 2
@@ -65,21 +67,32 @@ def is_faithful(body: str, facts: dict) -> bool:
     return all(item in body for item in required)
 
 
-def _call_claude(client, model: str, facts: dict, timeout: float) -> str | None:
+def _call_claude(
+    client, model: str, facts: dict, timeout: float, previous: str | None = None
+) -> str | None:
     import json
 
+    payload = {**facts, "previous_body": previous} if previous else facts
     response = client.messages.create(
         model=model,
         max_tokens=1500,
         timeout=timeout,
         system=SYSTEM_PROMPT,
         output_config={"effort": "low"},
-        messages=[{"role": "user", "content": json.dumps(facts, ensure_ascii=False)}],
+        messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
     )
     if response.stop_reason != "end_turn":  # refusal, max_tokens 등은 쓰지 않는다
         return None
     text = "".join(b.text for b in response.content if b.type == "text").strip()
     return text or None
+
+
+def _previous_body(draft: str | None) -> str | None:
+    """이전 초안에서 머리줄과 꼬리 문구를 뺀 본문(새 문안을 다르게 쓰게 하는 용도)."""
+    if not draft:
+        return None
+    lines = draft.split(chr(10))
+    return " ".join(lines[1:-1] if len(lines) > 2 else lines).strip()[:600] or None
 
 
 def make_client(api_key: str):
@@ -96,8 +109,9 @@ def draft_with_llm(
     model: str,
     timeout: float = 30.0,
     client=None,
+    previous: str | None = None,
 ) -> tuple[str, str]:
-    """(초안, 출처). 출처는 'llm' 또는 'template'(+이유)."""
+    """(초안, 출처). 출처는 'llm' 또는 'template'(+이유). previous가 있으면 그와 다른 문안을 요청한다."""
     template = draft_notification(result, allocation)
     if client is None:
         if not api_key:
@@ -111,7 +125,7 @@ def draft_with_llm(
     # 모델 출력은 호출마다 달라 검증에서 떨어지면 한 번 더 받는다.
     for _ in range(MAX_ATTEMPTS):
         try:
-            body = _call_claude(client, model, facts, timeout)
+            body = _call_claude(client, model, facts, timeout, _previous_body(previous))
         except (
             Exception
         ) as exc:  # 네트워크·인증·한도 오류. 초안 작성 실패가 분석을 멈추게 하지 않는다.

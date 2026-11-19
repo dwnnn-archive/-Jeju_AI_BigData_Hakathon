@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { chatSchema } from "../features/chat/types";
+import { draftSchema } from "../features/approval/types";
 import {
   runSchema,
   summarySchema,
@@ -87,6 +88,22 @@ export function createApi(key: string) {
       const parsed = chatSchema.safeParse(data);
       if (!parsed.success)
         throw new ApiError("질문 답변의 형식을 확인하지 못했습니다.");
+      return parsed.data;
+    },
+    // AI가 통보문 문안을 새로 쓴다(저장된 분석은 바뀌지 않는다).
+    regenerateDraft: async (id: string, previous?: string) => {
+      const data = await request(
+        "/analyses/" + encodeURIComponent(id) + "/draft",
+        {
+          method: "POST",
+          body: JSON.stringify({ previous: previous ?? null }),
+        },
+        undefined,
+        60000,
+      );
+      const parsed = draftSchema.safeParse(data);
+      if (!parsed.success)
+        throw new ApiError("통보문 응답의 형식을 확인하지 못했습니다.");
       return parsed.data;
     },
     checkLogin: async (approverId: string, token: string) => {

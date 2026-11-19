@@ -102,3 +102,22 @@ def test_units_attached_to_numbers_are_accepted():
     body = GOOD.replace("230.00 MWh", "230.00MWh").replace("60.00 MWh", "60.00MWh")
     assert is_faithful(body, build_facts(RESULT, PLAN))
     assert not is_faithful(body.replace("230.00MWh", "231.00MWh"), build_facts(RESULT, PLAN))
+
+
+def test_previous_draft_is_sent_so_the_new_text_differs():
+    seen = {}
+
+    class Spy(FakeClient):
+        def create(self, **kwargs):
+            seen["user"] = kwargs["messages"][0]["content"]
+            seen["system"] = kwargs["system"]
+            return super().create(**kwargs)
+
+    previous = "[제목]\n이전 문안입니다.\n꼬리 문구"
+    text, source = draft_with_llm(
+        RESULT, PLAN, api_key="k", model="m", client=Spy(), previous=previous
+    )
+    assert source == "llm" and "이전 문안입니다." in seen["user"]
+    assert "제목" not in seen["user"] and "꼬리" not in seen["user"]
+    assert "시민" in seen["system"] and "previous_body" in seen["system"]
+    assert text.startswith("[제주 출력제한 대응 권고]")

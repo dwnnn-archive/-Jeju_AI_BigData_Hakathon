@@ -11,7 +11,7 @@ async function analyze(page: Page) {
   );
 }
 
-test("real API: empty → result → review → mock notification, with keyboard and accessibility", async ({
+test("real API: empty → result → draft on demand → AI rewrite, with keyboard and accessibility", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
@@ -38,39 +38,22 @@ test("real API: empty → result → review → mock notification, with keyboard
   ).violations;
   expect(violations).toEqual([]);
   await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
-  const open = page.getByRole("button", {
-    name: "발송 확정",
-    exact: true,
-  });
-  await open.click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(open).toBeFocused();
-  await open.click();
-  await page
-    .getByLabel("검토 사유")
-    .fill("시연 데이터와 배분 범위를 확인했습니다.");
-  await page.getByLabel("담당자 인증 토큰").fill("local-review-test");
-  await page.getByRole("checkbox").check();
+  await expect(page.getByText("통보문 수신 대상")).toHaveCount(0);
+  await page.getByRole("button", { name: "통보문 작성" }).click();
+  await expect(page.getByText("통보문 수신 대상")).toBeVisible();
+  await expect(page.getByText("문자 발송을 승인한 시민")).toBeVisible();
+  await expect(
+    page.getByText("관내 충전소 등 운영자 · 재생에너지 사업자"),
+  ).toBeVisible();
   expect(
     (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
       .violations,
   ).toEqual([]);
-  await page
-    .getByRole("button", { name: "발송 확정 기록", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
-    "발송 확정됨",
-  );
-  await expect(
-    page.getByText("시연 발송 처리 완료", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByText(
-      "알림 상태이며, 저장·출력제한 등 설비 동작의 완료를 뜻하지 않습니다.",
-    ),
-  ).toBeVisible();
+  // AI 키가 없는 환경: 새로 쓰기를 눌러도 기본 문안이며, 그 사실을 화면에 밝힌다.
+  await page.getByRole("button", { name: /수정/ }).click();
+  await expect(page.getByText(/AI 연결 키가 없어 기본 문안/)).toBeVisible({
+    timeout: 15000,
+  });
 });
 
 test("receipt delay and queue are never shown as running; only worker evidence starts running", async ({
@@ -132,16 +115,14 @@ test("network loss blocks review and preserves the same request identity", async
 }) => {
   await analyze(page);
   await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "발송 확정", exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "통보문 작성" })).toBeEnabled();
   await page.route("**/api/v1/analyses/*", (route) => route.abort());
   await page.getByRole("button", { name: "상태 확인", exact: true }).click();
   await expect(page.getByRole("status", { name: "분석 상태" })).toHaveText(
     "상태 확인 불가",
   );
   await expect(
-    page.getByRole("button", { name: "발송 확정", exact: true }),
+    page.getByRole("button", { name: "통보문 작성" }),
   ).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "분석 요청", exact: true }),
@@ -151,29 +132,17 @@ test("network loss blocks review and preserves the same request identity", async
   ).toBeVisible();
 });
 
-test("changed selection cannot approve the previous result, and unauthorized approval is not success", async ({
+test("changed selection cannot draft a notice from the previous result", async ({
   page,
 }) => {
   await analyze(page);
   await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
   await page.getByRole("radio", { name: "한림", exact: true }).check();
   await expect(
-    page.getByRole("button", { name: "발송 확정", exact: true }),
+    page.getByRole("button", { name: "통보문 작성" }),
   ).toBeDisabled();
   await page.getByRole("radio", { name: "제주 전체", exact: true }).check();
-  await page.getByRole("button", { name: "발송 확정", exact: true }).click();
-  await page.getByLabel("검토 사유").fill("인증 실패 확인");
-  await page.getByLabel("담당자 인증 토큰").fill("wrong-token");
-  await page.getByRole("checkbox").check();
-  await page
-    .getByRole("button", { name: "발송 확정 기록", exact: true })
-    .click();
-  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
-    "인증 정보를 확인하세요.",
-  );
-  await expect(
-    page.getByText("발송 결정 기록: 확정", { exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "통보문 작성" })).toBeEnabled();
 });
 
 test("mobile result has no document overflow and navigation keeps the selected analysis", async ({
@@ -196,9 +165,7 @@ test("mobile result has no document overflow and navigation keeps the selected a
   await page.getByRole("button", { name: "자원 배분", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("자원 배분");
   await page.getByRole("button", { name: "통보문 확인", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "발송 확정", exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "통보문 작성" })).toBeEnabled();
   expect(
     (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
       .violations,

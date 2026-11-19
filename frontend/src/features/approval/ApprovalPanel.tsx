@@ -1,107 +1,105 @@
-import { useState } from "react";
-import { ShieldCheck, Send, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  ShieldCheck,
+  Send,
+  Copy,
+  Pencil,
+  RefreshCw,
+  Users,
+} from "lucide-react";
 import { DraftView } from "./DraftView";
 import { Button } from "../../components/Button";
-import { Modal } from "../../components/Modal";
-import { blockLabels, canReview } from "../analysis/state";
+import { blockLabels } from "../analysis/state";
 import { conditionFacts } from "../analysis/RunConditions";
 import type { AnalysisRun, Transport } from "../analysis/types";
+import type { DraftAnswer } from "./types";
 
 type Props = {
   run: AnalysisRun | null;
   transport: Transport;
   matches: boolean;
+  /** 분석이 진행 중이면 재측정을 막는다. */
   busy: boolean;
-  reviewExpired?: boolean;
-  onDecide: (
-    action: "approve" | "reject",
-    reason: string,
-    token: string,
-    approver: string,
-  ) => Promise<void>;
-  /** Logged-in officer; when present the modal reuses its token. */
-  session?: { approverId: string; token: string } | null;
-  onLogin?: () => void;
+  onRemeasure: () => void;
+  regenerate: (id: string, previous?: string) => Promise<DraftAnswer>;
 };
+
+/** 통보문을 받을 대상. 사전 정보 제공이며 실제 문자는 기관 시스템으로 발송한다. */
+export const recipients = [
+  { name: "문자 발송을 승인한 시민", note: "문자 알림 수신에 동의한 시민" },
+  {
+    name: "관내 충전소 등 운영자 · 재생에너지 사업자",
+    note: "충전 수요 조정, 출력 조정 협조 요청",
+  },
+];
+
+const reasonLabels: Record<string, string> = {
+  no_key: "AI 연결 키가 없어 기본 문안을 보여 줍니다.",
+  unfaithful:
+    "AI 문안의 숫자를 계산 결과와 맞출 수 없어 기본 문안을 보여 줍니다.",
+  no_text: "AI가 문안을 돌려주지 않아 기본 문안을 보여 줍니다.",
+};
+function reasonText(reason?: string | null) {
+  if (reason && reasonLabels[reason]) return reasonLabels[reason];
+  return "AI 호출에 실패해 기본 문안을 보여 줍니다.";
+}
+
+const notificationLabels: Record<string, string> = {
+  mock_sent: "시연 발송 처리 완료",
+  pending: "발송 대기",
+  sending: "발송 응답 확인 중",
+  sent: "알림 수신처 응답 확인",
+  blocked: "실제 발송 차단",
+  delivery_unknown: "발송 결과 확인 불가",
+};
+
 export function ApprovalPanel({
   run,
   transport,
   matches,
   busy,
-  reviewExpired = false,
-  onDecide,
-  session = null,
-  onLogin,
+  onRemeasure,
+  regenerate,
 }: Props) {
-  const [action, setAction] = useState<"approve" | "reject" | null>(null);
-  const [reason, setReason] = useState("");
-  const [typedApprover, setApprover] = useState("");
-  const approver = session?.token ?? typedApprover;
-  const [checked, setChecked] = useState(false);
+  const runId = run?.id;
+  const [shown, setShown] = useState(false);
+  const [override, setOverride] = useState<DraftAnswer | null>(null);
+  const [rewriting, setRewriting] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [reviewed, setReviewed] = useState<AnalysisRun | null>(null);
-  const sameResult = Boolean(
-    reviewed &&
-    run &&
-    reviewed.id === run.id &&
-    reviewed.result_token === run.result_token,
+  // 다른 분석을 보면 이전 분석의 통보문을 이어 보이지 않는다.
+  useEffect(() => {
+    setShown(false);
+    setOverride(null);
+    setError("");
+  }, [runId, run?.result_token]);
+  const ready = Boolean(
+    run?.result && run.draft && transport === "confirmed" && matches,
   );
-  const eligible = !reviewExpired && canReview(run, transport, matches);
-  const retry =
-    run?.status === "decision_pending" &&
-    Boolean(run.decision_intent) &&
-    transport === "confirmed" &&
-    matches;
-  const notificationLabels: Record<string, string> = {
-    mock_sent: "시연 발송 처리 완료",
-    pending: "발송 대기",
-    sending: "발송 응답 확인 중",
-    sent: "알림 수신처 응답 확인",
-    blocked: "실제 발송 차단",
-    delivery_unknown: "발송 결과 확인 불가",
-  };
-  async function confirm() {
-    if (
-      !reviewed?.result_token ||
-      !sameResult ||
-      !action ||
-      (!eligible && !retry)
-    )
-      return;
-    if (!reason.trim() || !approver.trim() || !checked) {
-      setError("사유, 담당자 인증, 확인 항목을 모두 입력하세요.");
-      return;
-    }
+  const current = run && override ? { ...run, draft: override.draft } : run;
+  async function rewrite() {
+    if (!run || !current?.draft) return;
+    setRewriting(true);
+    setError("");
     try {
-      await onDecide(action, reason.trim(), reviewed.result_token, approver);
-      setAction(null);
-      setApprover("");
-      setReason("");
-      setChecked(false);
+      setOverride(await regenerate(run.id, current.draft));
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "결정 상태를 다시 확인하세요.",
+        cause instanceof Error ? cause.message : "새 통보문을 받지 못했습니다.",
       );
+    } finally {
+      setRewriting(false);
     }
   }
   async function copyDraft() {
-    if (!run?.draft) return;
+    if (!current?.draft) return;
     try {
-      await navigator.clipboard.writeText(run.draft);
+      await navigator.clipboard.writeText(current.draft);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
-  }
-  function open(value: "approve" | "reject") {
-    setReviewed(run);
-    setAction(value);
-    setError("");
-    setChecked(false);
-    setApprover("");
-    setReason(retry ? run?.decision_intent?.reason || "" : "");
   }
   return (
     <div className="approval-panel">
@@ -113,8 +111,8 @@ export function ApprovalPanel({
         <ShieldCheck size={22} />
       </div>
       <p className="section-description">
-        AI는 통보문 초안을 만들어 둡니다. 문구를 확인하고 발송할지는 도청 에너지
-        담당 부서 담당자가 정합니다.
+        결과를 다시 측정하거나, 이 결과로 통보문을 작성할 수 있습니다. 문구를
+        확인하고 발송할지는 도청 에너지 담당 부서 담당자가 정합니다.
       </p>
       <div className="review-facts">
         <div>
@@ -140,25 +138,23 @@ export function ApprovalPanel({
           <strong>시연 · 모의 발송만 가능</strong>
         </div>
       </div>
-      {run?.draft ? (
-        <>
-          <DraftView run={run} />
-          <div className="draft-copy">
-            <Button variant="ghost" onClick={() => void copyDraft()}>
-              <Copy size={14} aria-hidden="true" />
-              {copied ? "복사했습니다" : "통보문 복사"}
-            </Button>
-            <span className="caption">
-              기관의 문자 발송 시스템에 붙여 넣어 사용할 수 있습니다.
-            </span>
-          </div>
-        </>
-      ) : (
-        <div className="draft-empty">검토할 초안이 아직 없습니다.</div>
-      )}
+      <div className="review-actions">
+        <Button
+          variant="secondary"
+          disabled={!run || busy || transport === "sending"}
+          onClick={onRemeasure}
+        >
+          <RefreshCw size={14} aria-hidden="true" />
+          재측정
+        </Button>
+        <Button disabled={!ready || shown} onClick={() => setShown(true)}>
+          <Pencil size={14} aria-hidden="true" />
+          통보문 작성
+        </Button>
+      </div>
       {transport !== "confirmed" && run && (
         <p className="notice notice--warning">
-          최신 서버 상태를 확인하기 전에는 결정할 수 없습니다.
+          최신 서버 상태를 확인하기 전에는 통보문을 작성할 수 없습니다.
         </p>
       )}
       {!matches && run && (
@@ -170,9 +166,71 @@ export function ApprovalPanel({
         .filter((code) => code !== "not_awaiting_approval" || !run.decision)
         .map((code) => (
           <p className="block-reason" key={code}>
-            {blockLabels[code] || "서버에서 결정을 제한했습니다."}
+            {blockLabels[code] || "서버에서 제한했습니다."}
           </p>
         ))}
+      {shown && current?.draft ? (
+        <>
+          <div className="draft-recipients">
+            <h3>
+              <Users size={16} aria-hidden="true" />
+              통보문 수신 대상
+            </h3>
+            <ul>
+              {recipients.map((r) => (
+                <li key={r.name}>
+                  <strong>{r.name}</strong>
+                  <span>{r.note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DraftView run={current} />
+          <div className="draft-copy">
+            <Button
+              variant="secondary"
+              busy={rewriting}
+              disabled={!ready}
+              onClick={() => void rewrite()}
+            >
+              <Pencil size={14} aria-hidden="true" />
+              수정 (AI가 새로 작성)
+            </Button>
+            <Button variant="ghost" onClick={() => void copyDraft()}>
+              <Copy size={14} aria-hidden="true" />
+              {copied ? "복사했습니다" : "통보문 복사"}
+            </Button>
+          </div>
+          {rewriting && (
+            <p role="status" className="caption">
+              AI가 새 통보문을 쓰는 중입니다. 최대 30초 정도 걸립니다.
+            </p>
+          )}
+          {override && !rewriting && (
+            <p className="caption" role="status">
+              {override.mode === "llm"
+                ? "AI가 새로 쓴 문안입니다. 숫자는 계산 결과와 대조했습니다."
+                : reasonText(override.mode_reason)}
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="notice notice--warning">
+              {error}
+            </p>
+          )}
+          <p className="caption">
+            수정은 이 화면의 문안만 바꿉니다. 시연에서는 실제 문자가 발송되지
+            않으며, 기관의 문자 발송 시스템에 붙여 넣어 사용합니다. 실제 전력
+            설비에는 명령을 보내지 않습니다.
+          </p>
+        </>
+      ) : (
+        <div className="draft-empty">
+          {run?.result
+            ? "‘통보문 작성’을 누르면 이 결과로 통보문 초안이 나옵니다."
+            : "분석 결과가 있어야 통보문을 작성할 수 있습니다."}
+        </div>
+      )}
       {run?.decision && (
         <div className="decision-record">
           <ShieldCheck size={18} />
@@ -199,145 +257,6 @@ export function ApprovalPanel({
             </p>
           </div>
         </div>
-      )}
-      <div className="review-actions">
-        {retry ? (
-          <Button onClick={() => open(run!.decision_intent!.action)}>
-            기록된 결정 재시도
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant="secondary"
-              disabled={!eligible}
-              onClick={() => open("reject")}
-            >
-              발송 보류
-            </Button>
-            <Button disabled={!eligible} onClick={() => open("approve")}>
-              발송 확정
-            </Button>
-          </>
-        )}
-      </div>
-      <p className="caption">
-        발송 확정과 보류는 되돌릴 수 없습니다. 시연에서는 실제 문자가 발송되지
-        않으며, 실제 전력 설비에도 명령을 보내지 않습니다.
-      </p>
-      {action && (
-        <Modal
-          title={
-            action === "approve"
-              ? "이 통보문을 발송할까요?"
-              : "이 통보문의 발송을 보류할까요?"
-          }
-          locked={busy}
-          onClose={() => setAction(null)}
-        >
-          <p className="notice">
-            {reviewed?.request.date} · 분석 {reviewed?.id.slice(0, 8)}
-            <br />
-            발전량/수요 최대{" "}
-            {((reviewed?.result?.peak_ratio ?? 0) * 100).toFixed(0)}%
-            <br />
-            피크 잉여전력 {reviewed?.result?.peak_surplus_mwh.toFixed(1)} MWh
-          </p>
-          {!sameResult && (
-            <p role="alert" className="notice notice--warning">
-              검토 대상이 변경되었습니다. 이 창을 닫고 새 결과를 다시
-              검토하세요.
-            </p>
-          )}
-          <form
-            noValidate
-            onSubmit={(event) => {
-              event.preventDefault();
-              void confirm();
-            }}
-          >
-            <div className="field">
-              <label htmlFor="reason">검토 사유</label>
-              <textarea
-                id="reason"
-                rows={3}
-                maxLength={1000}
-                value={reason}
-                readOnly={retry}
-                onChange={(event) => setReason(event.target.value)}
-                aria-describedby="review-help"
-              />
-            </div>
-            {session ? (
-              <p className="notice">
-                <strong>{session.approverId}</strong> 담당자로 로그인되어 있어
-                로그인한 인증 토큰으로 결정을 기록합니다.
-              </p>
-            ) : (
-              <div className="field">
-                <label htmlFor="approver">담당자 인증 토큰</label>
-                <input
-                  id="approver"
-                  type="password"
-                  value={approver}
-                  autoComplete="off"
-                  onChange={(event) => setApprover(event.target.value)}
-                />
-                {onLogin && (
-                  <button
-                    type="button"
-                    className="login-link"
-                    onClick={() => {
-                      setAction(null);
-                      onLogin();
-                    }}
-                  >
-                    로그인하면 토큰을 매번 입력하지 않아도 됩니다
-                  </button>
-                )}
-              </div>
-            )}
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
-              />
-              시연 결과임을 확인했고, 담당자로서 이 결정을 기록합니다.
-            </label>
-            <p id="review-help" className="caption">
-              인증 토큰은 이번 창에서만 사용하며 저장하지 않습니다.
-            </p>
-            {error && (
-              <p role="alert" className="notice notice--warning">
-                {error}
-              </p>
-            )}
-            <div className="modal-actions">
-              <Button
-                variant="secondary"
-                type="button"
-                disabled={busy}
-                onClick={() => setAction(null)}
-              >
-                돌아가기
-              </Button>
-              <Button
-                type="submit"
-                variant={action === "reject" ? "danger" : "primary"}
-                busy={busy}
-                disabled={
-                  !sameResult ||
-                  !checked ||
-                  !reason.trim() ||
-                  !approver.trim() ||
-                  (!eligible && !retry)
-                }
-              >
-                {action === "approve" ? "발송 확정 기록" : "보류 기록"}
-              </Button>
-            </div>
-          </form>
-        </Modal>
       )}
     </div>
   );

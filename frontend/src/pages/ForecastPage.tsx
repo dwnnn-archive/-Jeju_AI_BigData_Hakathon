@@ -95,7 +95,7 @@ export function ForecastPage({
         <p className="dv-caption">
           {run.simulation
             ? "시연 데이터 기준 · 실제 예측값이 아닙니다. 예측값은 현장 운영 검증과 실제 조치 승인을 대신하지 않습니다."
-            : "외부 데이터 기준 · 운영 검증 전 값입니다."}
+            : "외부 데이터 기준 · 과거 자료 검증은 마쳤고 운영 환경 검증은 전입니다."}
         </p>
       </section>
 

@@ -8,6 +8,7 @@ from app.domain.schemas import (
     AnalysisRequest,
     ChatRequest,
     DispatchRequest,
+    DraftRequest,
     LoginCheck,
     ReviewDecision,
 )
@@ -58,6 +59,12 @@ def dispatch(run_id: str, body: DispatchRequest, request: Request, actor: Office
 @router.get("/analyses/{run_id}/audit")
 def audit(run_id: str, request: Request):
     return request.app.state.service.audit(run_id)
+
+
+@router.post("/analyses/{run_id}/draft")
+def regenerate_draft(run_id: str, body: DraftRequest, request: Request):
+    """AI로 통보문 문안을 새로 쓴다. 저장된 분석 결과·초안은 바꾸지 않는다."""
+    return request.app.state.service.regenerate_draft(run_id, body.previous)
 
 
 @router.post("/analyses/{run_id}/chat")

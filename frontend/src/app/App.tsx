@@ -348,7 +348,7 @@ export function App() {
                   </strong>
                   {form.mode === "demo"
                     ? "미리 정한 데이터로 분석과 검토 절차를 확인합니다. 실제 예측·설비 제어 결과가 아닙니다."
-                    : "외부 데이터 조회를 시도합니다. 미검증 결과는 실제 조치나 발송에 사용할 수 없습니다."}
+                    : "외부 데이터 조회를 시도합니다. 운영 환경 검증 전인 결과는 실제 조치나 발송에 사용할 수 없습니다."}
                 </p>
               </section>
               <div className="status-row ed-statusline">
@@ -436,11 +436,9 @@ export function App() {
                 run={run}
                 transport={transport}
                 matches={matches}
-                busy={analysis.decisionBusy}
-                reviewExpired={analysis.reviewExpired}
-                onDecide={analysis.decide}
-                session={session}
-                onLogin={openLogin}
+                busy={unresolved}
+                onRemeasure={() => run && submit({ ...run.request })}
+                regenerate={api.regenerateDraft}
               />
             </section>
           )}

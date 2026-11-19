@@ -227,3 +227,25 @@ def test_unsupported_numbers_allows_equal_values_and_question_numbers():
     assert (
         chat_agent.unsupported_numbers("15시는 어떤가요? 15시 값은 모릅니다", ev, "15시는?") == []
     )
+
+
+def test_regenerate_draft_returns_new_text_without_changing_the_run(app_client):
+    run = run_critical(app_client)
+    absorption = f"{run['allocation']['absorption_pct']:.2f}"
+    body = f"CRITICAL 위험이 예상됩니다. 피크 잉여전력은 230.00 MWh이며 흡수율 {absorption}%를 목표로 제안합니다."
+    app_client.app.state.service.chat_client = FakeClient(reply(text(body)))
+    before = app_client.get(f"/api/v1/analyses/{run['id']}").json()
+    response = app_client.post(f"/api/v1/analyses/{run['id']}/draft", json={})
+    assert response.status_code == 200, response.text
+    out = response.json()
+    assert out["mode"] == "llm" and "230.00" in out["draft"]
+    after = app_client.get(f"/api/v1/analyses/{run['id']}").json()
+    assert after["draft"] == before["draft"] and after["status"] == before["status"]
+
+
+def test_regenerate_draft_without_key_falls_back_to_template(app_client):
+    run = run_critical(app_client)
+    app_client.app.state.service.chat_client = None
+    out = app_client.post(f"/api/v1/analyses/{run['id']}/draft", json={}).json()
+    assert out["mode"] == "template" and out["mode_reason"] == "no_key"
+    assert out["draft"].startswith("[제주 출력제한 대응 권고]")

@@ -65,7 +65,7 @@ export function HistoryPanel({
                 <span>
                   {regions[item.request.region]} ·{" "}
                   {phaseLabel(item.phase ?? item.request.phase, item.check_no)}{" "}
-                  · {item.simulation ? "시연" : "외부 · 검증 전"} · 접수{" "}
+                  · {item.simulation ? "시연" : "외부 · 운영 검증 전"} · 접수{" "}
                   {timeFormat.format(new Date(item.created_at))}
                 </span>
               </div>

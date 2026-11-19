@@ -16,6 +16,7 @@ from app.repositories.jobs import JobRepository, iso_now, utcnow
 from app.services.analysis import AnalysisService, ConflictError
 from app.tools import chat_agent
 from app.tools.tool1_kma_weather import parse_request
+from app.tools.tool6_llm import draft_with_llm
 
 logger = logging.getLogger(__name__)
 SCOPE_HINT = (
@@ -283,6 +284,28 @@ class JobService:
                 {"decision": json.loads(row["decision"]), "created_at": row["created_at"]}
                 for row in conn.execute("SELECT * FROM audit WHERE analysis_id=?", (run_id,))
             ]
+
+    def regenerate_draft(self, run_id, previous=None):
+        """통보문을 AI로 새로 쓴다. 분석 결과와 저장된 초안은 건드리지 않고 새 문안만 돌려준다."""
+        run = self.get(run_id)
+        if not run["result"] or not run["allocation"]:
+            raise ConflictError("There is no result to draft a notice from")
+        key = self.settings.anthropic_api_key
+        text, source = draft_with_llm(
+            run["result"],
+            run["allocation"],
+            api_key=key.get_secret_value() if key else None,
+            model=self.settings.llm_model,
+            timeout=self.settings.llm_timeout,
+            client=self.chat_client,
+            previous=previous or run["draft"],
+        )
+        return {
+            "analysis_id": run_id,
+            "draft": text,
+            "mode": "llm" if source == "llm" else "template",
+            "mode_reason": None if source == "llm" else source.removeprefix("template:"),
+        }
 
     def chat(self, run_id, message):
         """질문에 답한다. LLM이 읽기 전용 도구를 골라 답하고, 쓸 수 없으면 키워드 답변을 쓴다."""
