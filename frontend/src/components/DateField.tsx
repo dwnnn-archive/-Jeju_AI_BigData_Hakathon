@@ -28,11 +28,16 @@ export function DateField({
   value,
   onChange,
   disabled,
+  min,
+  max,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  /** 선택할 수 있는 가장 이른/늦은 날(YYYY-MM-DD). 밖의 날은 회색으로 비활성화된다. */
+  min?: string;
+  max?: string;
 }) {
   const [open, setOpen] = useState(false);
   const today = kstToday();
@@ -81,6 +86,7 @@ export function DateField({
   const lead = new Date(Date.UTC(view.y, view.m, 1)).getUTCDay();
   const days = new Date(Date.UTC(view.y, view.m + 1, 0)).getUTCDate();
   const tomorrow = addDays(today, 1);
+  const out = (d: string) => Boolean((min && d < min) || (max && d > max));
 
   return (
     <div className="datefield" ref={root}>
@@ -90,6 +96,8 @@ export function DateField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
+        min={min}
+        max={max}
       />
       <button
         type="button"
@@ -160,7 +168,8 @@ export function DateField({
                     .filter(Boolean)
                     .join(" ")}
                   aria-pressed={selected}
-                  aria-label={`${view.m + 1}월 ${i + 1}일${d === today ? " 오늘" : ""}`}
+                  aria-label={`${view.m + 1}월 ${i + 1}일${d === today ? " 오늘" : ""}${out(d) ? " (선택할 수 없음)" : ""}`}
+                  disabled={out(d)}
                   onClick={() => pick(d)}
                 >
                   {i + 1}
@@ -169,10 +178,18 @@ export function DateField({
             })}
           </div>
           <div className="datefield-quick">
-            <button type="button" onClick={() => pick(today)}>
+            <button
+              type="button"
+              disabled={out(today)}
+              onClick={() => pick(today)}
+            >
               오늘
             </button>
-            <button type="button" onClick={() => pick(tomorrow)}>
+            <button
+              type="button"
+              disabled={out(tomorrow)}
+              onClick={() => pick(tomorrow)}
+            >
               내일
             </button>
           </div>

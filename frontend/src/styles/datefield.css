@@ -158,3 +158,22 @@
   width: 300px;
   max-width: 100%;
 }
+.datefield-day:disabled {
+  color: var(--disabled);
+  background: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.datefield-day:disabled:hover {
+  background: none;
+}
+.datefield-quick button:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+}
+.date-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}

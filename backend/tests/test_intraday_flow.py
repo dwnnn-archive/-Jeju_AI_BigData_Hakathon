@@ -1,6 +1,6 @@
 """하루 전 계획 + 당일 점검 이중 설계를 작업 큐·그래프·승인까지 끝까지 확인한다."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -33,6 +33,8 @@ def settings(tmp_path):
 @pytest.fixture
 def client(settings):
     with TestClient(create_app(settings)) as value:
+        # 오늘 날짜의 하루 전 분석은 어제 접수된 것으로 본다(외부 데이터 날짜 범위: 내일~모레).
+        value.app.state.service.today = lambda: TODAY - timedelta(days=1)
         yield value
 
 

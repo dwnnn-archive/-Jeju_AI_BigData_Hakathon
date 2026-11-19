@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Api } from "../../api/client";
+import { ApiError, type Api } from "../../api/client";
 import { acceptSnapshot } from "./state";
 import {
   requestSchema,
@@ -40,6 +40,8 @@ export function useAnalysis(api: Api) {
     active ? "checking" : "idle",
   );
   const [error, setError] = useState("");
+  // 날짜 범위를 벗어나 접수가 거절된 경우. 접수된 분석이 없으므로 상태 확인 불가로 보이지 않는다.
+  const [rejection, setRejection] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [decisionBusy, setDecisionBusy] = useState(false);
   const [reviewExpired, setReviewExpired] = useState(false);
@@ -180,13 +182,26 @@ export function useAnalysis(api: Api) {
       latest.current = null;
       setTransport("sending");
       setError("");
+      setRejection("");
       const pending = existing || { id: crypto.randomUUID(), request: body };
       remember(pending);
+      let rejected = false;
       const started = performance.now();
       try {
         const value = await api.submit(pending.id, pending.request);
         accept(value, pending.id, performance.now() - started);
       } catch (cause) {
+        if (cause instanceof ApiError && cause.code === "date_out_of_range") {
+          rejected = true;
+          setTransport("idle");
+          setRejection(cause.message);
+          try {
+            sessionStorage.removeItem(savedKey);
+          } catch {
+            /* Storage may be disabled. */
+          }
+          return;
+        }
         setTransport("unknown");
         setError(
           cause instanceof Error
@@ -195,7 +210,7 @@ export function useAnalysis(api: Api) {
         );
       } finally {
         busy.current = false;
-        setActive(pending);
+        if (!rejected) setActive(pending);
       }
     },
     [api, accept],
@@ -273,6 +288,8 @@ export function useAnalysis(api: Api) {
     run,
     transport,
     error,
+    rejection,
+    clearRejection: () => setRejection(""),
     lastConfirmed,
     decisionBusy,
     submit,

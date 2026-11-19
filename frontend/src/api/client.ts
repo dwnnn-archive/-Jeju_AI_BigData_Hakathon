@@ -11,6 +11,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status?: number,
+    public code?: string,
   ) {
     super(message);
   }
@@ -49,6 +50,16 @@ export function createApi(key: string) {
         422: "요청 형식이 올바르지 않습니다.",
         503: "서버가 현재 요청을 처리할 수 없습니다.",
       };
+      if (response.status === 422) {
+        // 서버가 날짜 범위를 벗어난 요청을 분명한 코드로 거절한다.
+        const body = await response.json().catch(() => null);
+        if (body?.detail === "date_out_of_range")
+          throw new ApiError(
+            "분석할 수 없는 날짜입니다.",
+            422,
+            "date_out_of_range",
+          );
+      }
       throw new ApiError(
         messages[response.status] || "서버 처리 결과를 확인하지 못했습니다.",
         response.status,

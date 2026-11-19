@@ -2,7 +2,8 @@ import { useId } from "react";
 import type { AnalysisRequest } from "./types";
 import { Button } from "../../components/Button";
 import { DateField } from "../../components/DateField";
-import { todayKst } from "./state";
+import { clampDate, dateLimits, todayKst } from "./state";
+import { DateHint } from "./DateHint";
 import { Play, CalendarDays } from "lucide-react";
 
 export const regions = {
@@ -90,7 +91,10 @@ export function AnalysisForm({
           id="date"
           value={value.date}
           onChange={(date) => onChange({ ...value, date })}
+          min={dateLimits(value.mode).min}
+          max={dateLimits(value.mode).max}
         />
+        <DateHint />
       </div>
       <Segmented
         legend="분석 지역"
@@ -106,7 +110,13 @@ export function AnalysisForm({
         name={`${id}-mode`}
         options={modes}
         value={value.mode}
-        onChange={(mode) => onChange({ ...value, mode })}
+        onChange={(mode) =>
+          onChange({
+            ...value,
+            mode,
+            date: clampDate(value.date, dateLimits(mode)),
+          })
+        }
       />
       {value.mode === "demo" && (
         <Segmented

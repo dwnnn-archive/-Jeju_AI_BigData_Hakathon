@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import date
 import time
 from threading import Event, Thread
 from uuid import uuid4
@@ -92,6 +93,7 @@ def test_result_token_and_newer_analysis_gate_decisions(service):
 
 
 def test_live_missing_data_fails_without_demo_result(service):
+    service.today = lambda: date(2026, 11, 14)  # 11-15가 내일이 되게 고정
     run = submit(service, mode="live")
     service.run_once()
     result = service.get(run["id"])

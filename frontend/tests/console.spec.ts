@@ -261,3 +261,43 @@ test("question panel: asks about the result and labels the answer source", async
   await expect(panel.getByText(/AI 연결 키가 없어/)).toBeVisible();
   await expect(panel.getByText(/수소 환산/)).toBeVisible();
 });
+
+test("external-data mode rejects dates outside tomorrow..day after with a clear popup", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "분석", exact: true }).click();
+  // 기본은 외부 데이터 모드이고 안내가 보인다.
+  await expect(
+    page.getByText("내일부터 모레까지 분석할 수 있습니다", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("단, 시연모드에는 날짜 제한이 없습니다"),
+  ).toBeVisible();
+  // 달력에서 오늘(과거 포함)은 회색으로 비활성화된다.
+  await page.getByRole("button", { name: "달력 열기" }).click();
+  await expect(
+    page.getByRole("button", { name: /\(선택할 수 없음\)/ }).first(),
+  ).toBeDisabled();
+  await page.keyboard.press("Escape");
+  // 직접 입력한 과거 날짜는 서버가 거절하고 작은 창으로 알린다.
+  await page.locator("#date").fill("2026-01-05");
+  await page.getByRole("button", { name: "분석 요청", exact: true }).click();
+  const popup = page.getByRole("dialog", {
+    name: "분석할 수 없는 날짜입니다.",
+  });
+  await expect(popup).toBeVisible();
+  await popup.getByRole("button", { name: "확인" }).click();
+  await expect(popup).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
+    "분석 요청 전",
+  );
+  // 시연 모드는 같은 날짜도 제한 없이 접수한다.
+  await page.getByLabel("시연 데이터").check({ force: true });
+  await page.locator("#date").fill("2026-01-05");
+  await page.getByRole("button", { name: "분석 요청", exact: true }).click();
+  await expect(page.getByRole("status", { name: "분석 상태" })).toContainText(
+    "계산 완료",
+    { timeout: 15000 },
+  );
+});

@@ -67,6 +67,26 @@ export const blockLabels: Record<string, string> = {
 };
 
 /** 한국 표준시 기준 오늘(YYYY-MM-DD). */
+export type DateLimits = { min?: string; max?: string };
+function addDaysIso(isoDate: string, days: number) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+/** 외부 데이터의 하루 전 분석은 내일~모레만. 시연 데이터는 제한이 없다. */
+export function dateLimits(
+  mode: "demo" | "live",
+  now = Date.now(),
+): DateLimits {
+  if (mode !== "live") return {};
+  const today = todayKst(now);
+  return { min: addDaysIso(today, 1), max: addDaysIso(today, 2) };
+}
+export function clampDate(date: string, limits: DateLimits) {
+  if (limits.min && date < limits.min) return limits.min;
+  if (limits.max && date > limits.max) return limits.max;
+  return date;
+}
+
 export function todayKst(now = Date.now()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",

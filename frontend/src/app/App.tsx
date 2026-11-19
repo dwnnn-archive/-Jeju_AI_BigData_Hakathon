@@ -14,7 +14,7 @@ import {
 import { createApi } from "../api/client";
 import { useAnalysis } from "../features/analysis/useAnalysis";
 import { AnalysisForm } from "../features/analysis/AnalysisForm";
-import { canIntradayCheck } from "../features/analysis/state";
+import { canIntradayCheck, dateLimits } from "../features/analysis/state";
 import type {
   AnalysisRequest,
   AnalysisSummary,
@@ -121,6 +121,7 @@ export function App() {
   const historySequence = useRef(0);
   const [formError, setFormError] = useState("");
   const { run, transport, error, active } = analysis;
+  const limits = dateLimits(form.mode);
   const matches =
     !run ||
     ["date", "region", "mode", "scenario"].every(
@@ -295,6 +296,7 @@ export function App() {
               run={run}
               transport={transport}
               date={form.date}
+              limits={limits}
               onDateChange={(date) => setForm({ ...form, date })}
               onSubmit={() => submit({ ...form, region: "jeju" })}
               submitDisabled={unresolved || transport === "sending"}
@@ -493,6 +495,17 @@ export function App() {
           )}
         </main>
       </div>
+      {analysis.rejection && (
+        <Modal title={analysis.rejection} onClose={analysis.clearRejection}>
+          <p>
+            외부 데이터 분석은 내일부터 모레까지만 할 수 있습니다. 예측 대상일을
+            다시 선택하세요.
+          </p>
+          <div className="modal-actions">
+            <Button onClick={analysis.clearRejection}>확인</Button>
+          </div>
+        </Modal>
+      )}
       {settingsOpen && (
         <Modal title="API 연결 설정" onClose={() => setSettingsOpen(false)}>
           <p className="section-description">

@@ -5,7 +5,7 @@ import json
 import logging
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from filelock import FileLock
@@ -48,10 +48,12 @@ class JobService:
         self.runner = None
         self.worker_error = None
         self.chat_client = None  # 테스트에서 모의 클라이언트를 넣는다
+        self.today = lambda: datetime.now(KST).date()  # 테스트에서 오늘을 고정한다
 
     def submit(self, request, key):
         key = str(UUID(key))
         request = parse_request(request)
+        self._require_date_in_range(request)
         with self.review_lock:
             if request.phase == "intraday":
                 self._require_intraday_allowed(request, key)
@@ -61,6 +63,14 @@ class JobService:
                 raise ConflictError(str(exc)) from exc
         self.wake.set()
         return self._view(row)
+
+    def _require_date_in_range(self, request):
+        """외부 데이터의 하루 전 분석은 내일~모레만 받는다(기상청 예보는 앞날만, 오늘은 당일 점검)."""
+        if request.mode != "live" or request.phase != "day_ahead":
+            return
+        today = self.today()
+        if not today + timedelta(days=1) <= request.date <= today + timedelta(days=2):
+            raise ValueError("date_out_of_range")
 
     def _require_intraday_allowed(self, request, key):
         """당일 점검은 당일에, 하루 전이 정상으로 끝난 날에만, 최대 횟수 안에서 접수한다."""

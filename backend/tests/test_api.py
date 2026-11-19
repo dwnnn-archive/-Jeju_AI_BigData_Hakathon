@@ -1,3 +1,4 @@
+from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
@@ -10,6 +11,13 @@ from tests.helpers import submit
 
 AUTH = {"X-Approver-Token": "test-officer-token"}
 REQUEST = {"date": "2026-11-14", "region": "jeju"}
+
+
+def in_days(n):
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    return (datetime.now(ZoneInfo("Asia/Seoul")).date() + timedelta(days=n)).isoformat()
 
 
 @pytest.fixture
@@ -182,7 +190,7 @@ def test_explicit_live_fallback_is_visible_but_cannot_be_approved(settings):
     settings.allow_mock_fallback = True
     settings.notification_mode = "webhook"
     with TestClient(create_app(settings)) as client:
-        response = submit(client, {**REQUEST, "mode": "live"})
+        response = submit(client, {**REQUEST, "date": in_days(1), "mode": "live"})
         assert response["sources"]["weather"]["simulated"] is True
         assert not response["can_decide"]
         run = create(client)
@@ -194,7 +202,7 @@ def test_explicit_live_fallback_is_visible_but_cannot_be_approved(settings):
 def test_strict_live_failure_is_recorded_without_leaking_upstream_secrets(settings):
     settings.allow_mock_fallback = False
     with TestClient(create_app(settings)) as client:
-        response = submit(client, {**REQUEST, "mode": "live"})
+        response = submit(client, {**REQUEST, "date": in_days(1), "mode": "live"})
         assert response["status"] == "failed"
         runs = client.get("/api/v1/analyses").json()
         assert runs[0]["status"] == "failed"
@@ -271,3 +279,28 @@ def test_login_check_is_disabled_without_configured_token(settings):
             "/api/v1/auth/check", json={"approver_id": "local-officer"}, headers=AUTH
         )
         assert response.status_code == 503
+
+
+def test_live_day_ahead_accepts_only_tomorrow_and_the_day_after(settings):
+    settings.allow_mock_fallback = True
+    with TestClient(create_app(settings)) as client:
+        for n in (1, 2):
+            body = {**REQUEST, "date": in_days(n), "mode": "live"}
+            assert client.post(
+                "/api/v1/analyses", json=body, headers={"Idempotency-Key": str(uuid4())}
+            ).status_code == 202
+        for n in (-1, 0, 3):
+            body = {**REQUEST, "date": in_days(n), "mode": "live"}
+            out = client.post(
+                "/api/v1/analyses", json=body, headers={"Idempotency-Key": str(uuid4())}
+            )
+            assert out.status_code == 422 and out.json()["detail"] == "date_out_of_range"
+
+
+def test_demo_mode_has_no_date_limit(settings):
+    with TestClient(create_app(settings)) as client:
+        for n in (-30, 0, 10):
+            body = {**REQUEST, "date": in_days(n), "mode": "demo", "scenario": "critical"}
+            assert client.post(
+                "/api/v1/analyses", json=body, headers={"Idempotency-Key": str(uuid4())}
+            ).status_code == 202

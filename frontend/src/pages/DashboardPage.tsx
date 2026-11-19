@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import type { AnalysisRun, Transport } from "../features/analysis/types";
-import { labels, phaseLabel } from "../features/analysis/state";
+import {
+  labels,
+  phaseLabel,
+  type DateLimits,
+} from "../features/analysis/state";
+import { DateHint } from "../features/analysis/DateHint";
 import { DateField } from "../components/DateField";
 import {
   FlowChart,
@@ -21,8 +26,10 @@ function BeforeView({
   disabled,
   error,
   onPreview,
+  limits,
 }: {
   date: string;
+  limits: DateLimits;
   onDateChange: (date: string) => void;
   onSubmit: () => void;
   disabled: boolean;
@@ -58,7 +65,10 @@ function BeforeView({
               value={date}
               onChange={onDateChange}
               disabled={disabled}
+              min={limits.min}
+              max={limits.max}
             />
+            <DateHint />
           </div>
           <div className="dv-field">
             <span className="dv-label">분석 지역</span>
@@ -155,7 +165,9 @@ function AfterView({
       <section className="dv-section" aria-labelledby="dv-after-title">
         <p className="dv-meta">
           <span>{longDate(run.request.date)} · 제주 전역</span>
-          <span>{run.simulation ? "시연 분석" : "외부 데이터 · 운영 검증 전"}</span>
+          <span>
+            {run.simulation ? "시연 분석" : "외부 데이터 · 운영 검증 전"}
+          </span>
           <span>{labels[run.status]}</span>
           <span>
             {phaseLabel(run.phase ?? run.request.phase, run.check_no)}
@@ -304,6 +316,7 @@ export function DashboardPage({
   onSubmit,
   submitDisabled,
   formError,
+  limits = {},
   onGoReview,
   onOpenForecast,
 }: {
@@ -313,6 +326,7 @@ export function DashboardPage({
   onDateChange: (date: string) => void;
   onSubmit: () => void;
   submitDisabled: boolean;
+  limits?: DateLimits;
   formError: string;
   onGoReview: () => void;
   onOpenForecast: () => void;
@@ -354,6 +368,7 @@ export function DashboardPage({
         {tab === "before" ? (
           <BeforeView
             date={date}
+            limits={limits}
             onDateChange={onDateChange}
             onSubmit={onSubmit}
             disabled={submitDisabled}
