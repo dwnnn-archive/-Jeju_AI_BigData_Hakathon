@@ -46,7 +46,7 @@ def run(client=None, key="k"):
 def test_uses_llm_body_and_code_footer():
     text, source = run(FakeClient())
     assert source == "llm" and GOOD in text
-    assert text.startswith("[제주 출력제한 대응 권고]") and "담당자 승인이 필요하며" in text
+    assert text.startswith("[제주 출력제한 상황 요약]") and "담당자 확인이 필요하며" in text
     assert "기상·수요 변동에 따라 변경될 수 있습니다" in text
 
 
@@ -121,4 +121,4 @@ def test_previous_draft_is_sent_so_the_new_text_differs():
     assert source == "llm" and "이전 문안입니다." in seen["user"]
     assert "제목" not in seen["user"] and "꼬리" not in seen["user"]
     assert "시민" in seen["system"] and "previous_body" in seen["system"]
-    assert text.startswith("[제주 출력제한 대응 권고]")
+    assert text.startswith("[제주 출력제한 상황 요약]")

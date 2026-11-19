@@ -137,7 +137,7 @@ def draft_with_llm(
         body = None
     if body is None:
         return template, "template:unfaithful"
-    head = f"[제주 출력제한 대응 권고] {result['date']} {result['peak_hour']:02d}:00 KST\n"
+    head = f"[제주 출력제한 상황 요약] {result['date']} {result['peak_hour']:02d}:00 KST\n"
     if "수소" in body and "가정" not in body:  # 환산이 가정임을 코드가 보장한다
         body += " " + HYDROGEN_NOTE
     return head + body + "\n" + footer_lines(allocation), "llm"

@@ -248,7 +248,7 @@ def test_regenerate_draft_without_key_falls_back_to_template(app_client):
     app_client.app.state.service.chat_client = None
     out = app_client.post(f"/api/v1/analyses/{run['id']}/draft", json={}).json()
     assert out["mode"] == "template" and out["mode_reason"] == "no_key"
-    assert out["draft"].startswith("[제주 출력제한 대응 권고]")
+    assert out["draft"].startswith("[제주 출력제한 상황 요약]")
 
 
 def test_data_sources_separates_past_backtest_from_missing_operational_validation():

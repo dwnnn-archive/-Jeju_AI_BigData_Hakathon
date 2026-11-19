@@ -28,13 +28,13 @@ def footer_lines(allocation: dict) -> str:
             if allocation.get("ev_basis")
             else "자원 가용량은 시연 추정치이며 "
         )
-        + "현장 검증과 담당자 승인이 필요하며, 기상·수요 변동에 따라 변경될 수 있습니다."
+        + "현장 검증과 담당자 확인이 필요하며, 기상·수요 변동에 따라 변경될 수 있습니다."
     )
 
 
 def draft_notification(result: dict, allocation: dict) -> str:
     return (
-        f"[제주 출력제한 대응 권고] {result['date']} {result['peak_hour']:02d}:00 KST\n"
+        f"[제주 출력제한 상황 요약] {result['date']} {result['peak_hour']:02d}:00 KST\n"
         f"위험등급: {result['risk']}, 발전량/수요 비율 최대 {result['peak_ratio']:.0%}\n"
         f"피크 잉여전력(수요의 {result['thresholds']['warning_ratio']:.0%} 초과분): "
         f"{result['peak_surplus_mwh']:.2f} MWh\n"
