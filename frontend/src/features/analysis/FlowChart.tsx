@@ -164,6 +164,14 @@ export function FlowChart({
         onBlur={() => setActive(null)}
         onKeyDown={onKey}
       >
+        {span && (
+          <span
+            className="flow-callout"
+            style={{ left: `${((span[0] + span[1] - 1) / 2 / 23) * 100}%` }}
+          >
+            {span[0]}–{span[1]}시 · 잉여 발생
+          </span>
+        )}
         <svg
           viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="none"
@@ -286,14 +294,6 @@ export function FlowChart({
           {Math.round(warningRatio * 100)}%)을 넘는 구간이 초록 음영으로
           표시됩니다. 그래프에 마우스를 올리면 시간대별 수치가 보입니다.
         </figcaption>
-      )}
-      {span && (
-        <span
-          className="flow-callout"
-          style={{ left: `${((span[0] + span[1] - 1) / 2 / 23) * 100}%` }}
-        >
-          {span[0]}–{span[1]}시 · 잉여 발생
-        </span>
       )}
       <div className="flow-axis" aria-hidden="true">
         {["00시", "06시", "12시", "18시", "23시"].map((t) => (

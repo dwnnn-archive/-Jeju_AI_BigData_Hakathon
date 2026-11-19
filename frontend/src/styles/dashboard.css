@@ -599,3 +599,16 @@
   font-weight: var(--weight-semibold);
   color: var(--text-sub);
 }
+
+/* 잉여 구간 표시는 그래프 바로 위(범례 아래)에 둔다 */
+.flow-plot .flow-callout {
+  top: -24px;
+  pointer-events: none;
+}
+.flow-legend {
+  margin-bottom: 40px;
+}
+/* 맨 아래 눈금 글자는 선 아래쪽에 둬서 발전량 선과 겹치지 않게 */
+.flow-plot .flow-ytick:last-of-type {
+  transform: translateY(20%);
+}
